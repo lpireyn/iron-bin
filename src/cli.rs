@@ -17,6 +17,7 @@
 use camino::Utf8PathBuf;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use eyre::Result;
+use fast_glob::glob_match;
 use tabled::{
     Table, Tabled,
     settings::{Alignment, Style, object::Columns},
@@ -43,10 +44,18 @@ impl Cli {
 
     fn list(&self, args: &ListArgs) -> Result<()> {
         let trash = Trash::default();
+        let patterns = &args.patterns;
         let mut entries = trash
             .entries()?
             // NOTE: Errors are discarded
             .filter_map(|entry| entry.ok())
+            // Filter entries according to patterns, if any
+            .filter(|entry| {
+                patterns.is_empty()
+                    || patterns
+                        .iter()
+                        .any(|pattern| glob_match(pattern, entry.original_path().as_str()))
+            })
             .collect::<Vec<_>>();
         // Sort trash entries
         let sort_order = &args.sort_order;
@@ -94,6 +103,13 @@ struct ListArgs {
         value_name = "ORDER"
     )]
     sort_order: SortOrder,
+
+    /// Path patterns.
+    ///
+    /// Should be quoted to avoid shell expansion.
+    // TODO: Document supported patterns (see https://docs.rs/fast-glob/latest/fast_glob/#syntax)
+    #[arg(value_name = "PATTERN")]
+    patterns: Vec<String>,
 }
 
 /// Sort order for the list command.
