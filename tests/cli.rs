@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use assert_cmd::Command;
+use assert_fs::TempDir;
 use predicates::prelude::*;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -45,5 +46,20 @@ fn option_help() -> Result<()> {
         .stdout(predicate::str::contains("--version"))
         .stdout(predicate::str::contains("--help"))
         .stderr(predicate::str::is_empty());
+    Ok(())
+}
+
+#[test]
+fn absent_trash_dir() -> Result<()> {
+    let temp_dir = TempDir::new().unwrap();
+    trash_command()?
+        .arg("list")
+        .env("XDG_DATA_HOME", temp_dir.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::is_empty())
+        .stderr(predicate::str::is_empty());
+    // Check that the trash directory was not created
+    assert_eq!(temp_dir.read_dir()?.count(), 0);
     Ok(())
 }

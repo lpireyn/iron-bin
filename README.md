@@ -2,6 +2,11 @@
 
 **Iron Bin**, a CLI for the [Freedesktop trash](https://specifications.freedesktop.org/trash-spec/) written in Rust :crab:.
 
+## Limitations
+
+- Invalid UTF-8 characters in file and directory names are not supported
+- Only the home trash is supported
+
 ## Changelog
 
 See [CHANGELOG](CHANGELOG.md).
