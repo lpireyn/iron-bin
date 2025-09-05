@@ -18,6 +18,7 @@ use camino::Utf8PathBuf;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use eyre::Result;
 use fast_glob::glob_match;
+use humansize::{DECIMAL, FormatSizeOptions, make_format};
 use tabled::{
     Table, Tabled,
     settings::{Alignment, Style, object::Columns},
@@ -57,17 +58,27 @@ impl Cli {
                         .any(|pattern| glob_match(pattern, entry.original_path().as_str()))
             })
             .collect::<Vec<_>>();
-        // Sort trash entries
+        // Sort entries
         let sort_order = &args.sort_order;
         entries.sort_by(|entry1, entry2| sort_order.cmp(entry1, entry2));
-        // Print trash entries
+        // Print entries
         // TODO: Quote paths under certain conditions (see https://www.gnu.org/software/coreutils/quotes.html)
         if !args.verbose {
             for entry in entries {
                 println!("{}", entry.original_path())
             }
         } else {
-            let mut table = Table::new(entries.iter().map(Record::from));
+            // NOTE: We use the DECIMAL format but remove the space after the value to mimic the behavior of `ls -lh`
+            let formatter = make_format(FormatSizeOptions::from(DECIMAL).space_after_value(false));
+            let mut table = Table::new(entries.iter().map(|entry| Record {
+                size: if args.human_readable {
+                    formatter(entry.size())
+                } else {
+                    format!("{}", entry.size())
+                },
+                deletion_date: entry.deletion_date().format("%c").to_string(),
+                path: entry.original_path().to_owned(),
+            }));
             table
                 .with(Style::empty())
                 .modify(Columns::first(), Alignment::right());
@@ -93,6 +104,13 @@ struct ListArgs {
     /// Verbose output.
     #[arg(long, short = 'v')]
     verbose: bool,
+
+    /// Print human-readable sizes.
+    ///
+    /// Useful with the '-v'/'--verbose' option.
+    // NOTE: The short name `-h` is more conventional, but it conflicts with the help option
+    #[arg(long, short = 'H')]
+    human_readable: bool,
 
     /// Sort order.
     // TODO: Use SortOrder::default() as default value
@@ -136,21 +154,11 @@ impl SortOrder {
 #[derive(Tabled)]
 struct Record {
     #[tabled(rename = "size")]
-    size: u64,
+    size: String,
 
     #[tabled(rename = "deletion date")]
     deletion_date: String,
 
     #[tabled(rename = "original path")]
     path: Utf8PathBuf,
-}
-
-impl From<&TrashEntry> for Record {
-    fn from(value: &TrashEntry) -> Self {
-        Self {
-            size: value.size(),
-            deletion_date: value.deletion_date().format("%c").to_string(),
-            path: value.original_path().to_owned(),
-        }
-    }
 }
