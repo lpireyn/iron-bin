@@ -1,0 +1,13 @@
+# Cargo manifest
+# https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[package]
+name = "iron-bin"
+version = "0.1.0"
+description = "Iron Bin, a CLI for the Freedesktop trash written in Rust."
+edition = "2024"
+readme = "README.md"
+repository = "https://github.com/lpireyn/iron-bin"
+license = "Apache-2.0"
+
+[dependencies]
