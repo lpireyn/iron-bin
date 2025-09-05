@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+
+# Git pre-commit hook
+# https://git-scm.com/docs/githooks#_pre_commit
+
+if ! RUSTFLAGS='--deny warnings' cargo --quiet check; then
+    echo 'Errors or warnings; fix them and retry'
+    exit 1
+fi
+
+if ! cargo fmt --all --check; then
+    echo 'Rust project not properly formatted; run `cargo fmt --all` and retry'
+    exit 1
+fi
