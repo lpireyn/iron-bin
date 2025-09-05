@@ -12,18 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! CLI.
+
+use clap::Parser;
 use eyre::Result;
-use iron_bin::cli::Cli;
 
-fn main() -> Result<()> {
-    init_eyre()?;
-    Cli::run()
-}
+/// Perform various operations on the trash.
+#[derive(Clone, Debug, Parser)]
+#[command(version)]
+pub struct Cli {}
 
-fn init_eyre() -> Result<()> {
-    // TODO: Disable processing of env var
-    color_eyre::config::HookBuilder::default()
-        .display_env_section(false)
-        .install()?;
-    Ok(())
+impl Cli {
+    pub fn run() -> Result<()> {
+        let cli = Self::parse();
+        println!("{cli:?}");
+        Ok(())
+    }
 }

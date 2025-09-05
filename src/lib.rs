@@ -12,18 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use eyre::Result;
-use iron_bin::cli::Cli;
+// TODO: Remove these before first release
+#![allow(dead_code, unused_variables)]
 
-fn main() -> Result<()> {
-    init_eyre()?;
-    Cli::run()
-}
-
-fn init_eyre() -> Result<()> {
-    // TODO: Disable processing of env var
-    color_eyre::config::HookBuilder::default()
-        .display_env_section(false)
-        .install()?;
-    Ok(())
-}
+pub mod cli;
