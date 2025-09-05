@@ -12,6 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-fn main() {
+use eyre::Result;
+
+fn main() -> Result<()> {
+    init_eyre()?;
     println!("Hello, world!");
+    Ok(())
+}
+
+fn init_eyre() -> Result<()> {
+    // TODO: Disable processing of env var
+    color_eyre::config::HookBuilder::default()
+        .display_env_section(false)
+        .install()?;
+    Ok(())
 }
