@@ -540,6 +540,7 @@ dependencies = [
  "humansize",
  "predicates",
  "rust-ini",
+ "shell-quote",
  "tabled",
  "urlencoding",
  "xdg",
@@ -831,6 +832,12 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "shell-quote"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb502615975ae2365825521fa1529ca7648fd03ce0b0746604e0683856ecd7e4"
 
 [[package]]
 name = "shlex"

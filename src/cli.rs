@@ -14,11 +14,14 @@
 
 //! CLI.
 
-use camino::Utf8PathBuf;
+use std::io::{IsTerminal, stdout};
+
+use camino::Utf8Path;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use eyre::Result;
 use fast_glob::glob_match;
 use humansize::{DECIMAL, FormatSizeOptions, make_format};
+use shell_quote::Sh;
 use tabled::{
     Table, Tabled,
     settings::{Alignment, Style, object::Columns},
@@ -44,6 +47,18 @@ impl Cli {
     }
 
     fn list(&self, args: &ListArgs) -> Result<()> {
+        // NOTE: This doesn't behave exactly as the quoting in `ls` but it's safe enough
+        fn quoted(path: impl AsRef<Utf8Path>, quote: bool) -> String {
+            let path = path.as_ref();
+            if quote {
+                str::from_utf8(&Sh::quote_vec(path.as_str()))
+                    .unwrap()
+                    .to_string()
+            } else {
+                path.to_string()
+            }
+        }
+
         let trash = Trash::default();
         let patterns = &args.patterns;
         let mut entries = trash
@@ -62,22 +77,24 @@ impl Cli {
         let sort_order = &args.sort_order;
         entries.sort_by(|entry1, entry2| sort_order.cmp(entry1, entry2));
         // Print entries
-        // TODO: Quote paths under certain conditions (see https://www.gnu.org/software/coreutils/quotes.html)
+        // NOTE: Quote paths only if stdout is a terminal
+        let is_terminal = stdout().is_terminal();
         if !args.verbose {
             for entry in entries {
-                println!("{}", entry.original_path())
+                println!("{}", quoted(entry.original_path(), is_terminal))
             }
         } else {
             // NOTE: We use the DECIMAL format but remove the space after the value to mimic the behavior of `ls -lh`
-            let formatter = make_format(FormatSizeOptions::from(DECIMAL).space_after_value(false));
+            let size_formatter =
+                make_format(FormatSizeOptions::from(DECIMAL).space_after_value(false));
             let mut table = Table::new(entries.iter().map(|entry| Record {
                 size: if args.human_readable {
-                    formatter(entry.size())
+                    size_formatter(entry.size())
                 } else {
                     format!("{}", entry.size())
                 },
                 deletion_date: entry.deletion_date().format("%c").to_string(),
-                path: entry.original_path().to_owned(),
+                path: quoted(entry.original_path(), is_terminal),
             }));
             table
                 .with(Style::empty())
@@ -160,5 +177,5 @@ struct Record {
     deletion_date: String,
 
     #[tabled(rename = "original path")]
-    path: Utf8PathBuf,
+    path: String,
 }
