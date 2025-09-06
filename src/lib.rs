@@ -15,6 +15,8 @@
 // TODO: Remove these before first release
 #![allow(dead_code, unused_variables)]
 
-pub mod camino_ext;
-pub mod cli;
-pub mod trash;
+pub mod app;
+
+pub(crate) mod camino_ext;
+pub(crate) mod cli;
+pub(crate) mod trash;

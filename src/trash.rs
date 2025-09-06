@@ -34,7 +34,7 @@ const TRASHINFO_EXTENSION: &str = "trashinfo";
 
 /// Trash.
 #[derive(Clone, Debug, PartialEq)]
-pub struct Trash {
+pub(crate) struct Trash {
     base_dir: Utf8PathBuf,
     info_dir: Utf8PathBuf,
     files_dir: Utf8PathBuf,
@@ -51,7 +51,7 @@ impl Trash {
     /// # Panics
     ///
     /// This function panics if the `HOME` environment variable is not defined or if the XDG data home contains invalid UTF-8 characters.
-    pub fn default_base_dir() -> Utf8PathBuf {
+    pub(crate) fn default_base_dir() -> Utf8PathBuf {
         Utf8PathBuf::from_path_buf(
             BaseDirectories::default()
                 .get_data_home()
@@ -62,7 +62,7 @@ impl Trash {
     }
 
     /// Create a trash at the given base directory.
-    pub fn new(base_dir: impl Into<Utf8PathBuf>) -> Self {
+    pub(crate) fn new(base_dir: impl Into<Utf8PathBuf>) -> Self {
         let base_dir = base_dir.into();
         let info_dir = base_dir.join("info");
         let files_dir = base_dir.join("files");
@@ -85,7 +85,7 @@ impl Trash {
     }
 
     /// Return the base directory of this trash.
-    pub fn base_dir(&self) -> &Utf8Path {
+    pub(crate) fn base_dir(&self) -> &Utf8Path {
         self.base_dir.as_path()
     }
 
@@ -159,7 +159,7 @@ impl Trash {
     }
 
     /// Return an interator on the entries of this trash.
-    pub fn entries(&self) -> Result<impl Iterator<Item = Result<TrashEntry>>> {
+    pub(crate) fn entries(&self) -> Result<impl Iterator<Item = Result<TrashEntry>>> {
         let entries = self
             .trashinfos()?
             .map(|trashinfo| trashinfo.and_then(|trashinfo| self.new_entry(&trashinfo)));
@@ -271,7 +271,7 @@ impl TrashInfo {
 
 /// Trash entry.
 #[derive(Clone, Debug, PartialEq)]
-pub struct TrashEntry {
+pub(crate) struct TrashEntry {
     identifier: String,
     original_path: Utf8PathBuf,
     deletion_time: NaiveDateTime,
@@ -279,15 +279,15 @@ pub struct TrashEntry {
 }
 
 impl TrashEntry {
-    pub fn original_path(&self) -> &Utf8Path {
+    pub(crate) fn original_path(&self) -> &Utf8Path {
         self.original_path.as_path()
     }
 
-    pub fn deletion_time(&self) -> &NaiveDateTime {
+    pub(crate) fn deletion_time(&self) -> &NaiveDateTime {
         &self.deletion_time
     }
 
-    pub fn size(&self) -> u64 {
+    pub(crate) fn size(&self) -> u64 {
         self.size
     }
 }
