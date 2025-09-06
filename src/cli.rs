@@ -18,7 +18,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 
 /// Perform various operations on the trash.
 #[derive(Clone, Debug, Parser, PartialEq)]
-#[command(version)]
+#[command(name = "trash", version)]
 pub(crate) struct Cli {
     /// Command.
     #[command(subcommand)]

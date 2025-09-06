@@ -24,15 +24,12 @@ fn trash_command() -> Result<Command> {
 
 #[test]
 fn option_version() -> Result<()> {
-    let pkg_name = env!("CARGO_PKG_NAME");
     let pkg_version = env!("CARGO_PKG_VERSION");
     trash_command()?
         .arg("--version")
         .assert()
         .success()
-        .stdout(predicate::str::contains(format!(
-            "{pkg_name} {pkg_version}"
-        )))
+        .stdout(predicate::str::contains(format!("trash {pkg_version}")))
         .stderr(predicate::str::is_empty());
     Ok(())
 }
