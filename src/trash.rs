@@ -14,11 +14,17 @@
 
 //! Trash.
 
-use std::os::unix::fs::MetadataExt;
+use std::{
+    cell::OnceCell,
+    collections::HashMap,
+    fs::File,
+    io::{BufRead, BufReader},
+    os::unix::fs::MetadataExt,
+};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use chrono::NaiveDateTime;
-use eyre::{ContextCompat, Result, WrapErr};
+use eyre::{ContextCompat, Result, WrapErr, eyre};
 use ini::Ini;
 use xdg::BaseDirectories;
 
@@ -32,6 +38,7 @@ pub struct Trash {
     base_dir: Utf8PathBuf,
     info_dir: Utf8PathBuf,
     files_dir: Utf8PathBuf,
+    dir_sizes: OnceCell<DirSizes>,
 }
 
 impl Trash {
@@ -63,6 +70,7 @@ impl Trash {
             base_dir,
             info_dir,
             files_dir,
+            dir_sizes: OnceCell::new(),
         }
     }
 
@@ -130,8 +138,14 @@ impl Trash {
             .symlink_metadata()
             .wrap_err_with(|| format!("Cannot get metadata for file {trash_file_path}"))?;
         let size = if metadata.is_dir() {
-            // TODO: Compute size and use `directorysizes` file
-            0
+            if let Some(dir_size) = self.dir_sizes().get(identifier)
+                && dir_size.mtime == trashinfo.mtime
+            {
+                dir_size.size
+            } else {
+                // NOTE: We don't compute the actual directory size here
+                0
+            }
         } else {
             metadata.len()
         };
@@ -150,6 +164,31 @@ impl Trash {
             .trashinfos()?
             .map(|trashinfo| trashinfo.and_then(|trashinfo| self.new_entry(&trashinfo)));
         Ok(entries)
+    }
+
+    fn load_dir_sizes(&self) -> Result<DirSizes> {
+        let mut dir_sizes = DirSizes::new();
+        let path = self.base_dir.join("directorysizes");
+        if path.is_file() {
+            let file = File::open(path)?;
+            let reader = BufReader::new(file);
+            for line in reader.lines() {
+                let line = line?;
+                let line = line.trim();
+                if let Ok(dir_size) = DirSize::load_from_line(line) {
+                    dir_sizes.insert(dir_size.name.clone(), dir_size);
+                }
+            }
+        }
+        Ok(dir_sizes)
+    }
+
+    fn dir_sizes(&self) -> &DirSizes {
+        self.dir_sizes.get_or_init(|| {
+            self.load_dir_sizes()
+                // NOTE: If the directory sizes cannot be loaded, return an empty map
+                .unwrap_or_default()
+        })
     }
 }
 
@@ -251,6 +290,44 @@ impl TrashEntry {
         self.size
     }
 }
+
+/// Record in the `directorysizes` file.
+#[derive(Clone, Debug, PartialEq)]
+struct DirSize {
+    size: u64,
+    mtime: u64,
+    name: String,
+}
+
+impl DirSize {
+    fn load_from_line(line: impl AsRef<str>) -> Result<DirSize> {
+        let line = line.as_ref();
+        let mut iter = line.split_whitespace();
+        let size = iter
+            .next()
+            .ok_or_else(|| eyre!("Missing size in directorysizes record"))?;
+        let size = size
+            .parse::<u64>()
+            .wrap_err_with(|| format!("Invalid size in directorysizes record: {size}"))?;
+        let mtime = iter
+            .next()
+            .ok_or_else(|| eyre!("Missing mtime in directorysizes record"))?;
+        let mtime = mtime
+            .parse::<u64>()
+            .wrap_err_with(|| format!("Invalid mtime in directorysizes record: {mtime}"))?;
+        let name = iter
+            .next()
+            .ok_or_else(|| eyre!("Missing name in directorysizes record"))?;
+        let name = urlencoding::decode(name)
+            .wrap_err_with(|| format!("Invalid name in directorysizes record: {name}"))?
+            .into_owned();
+        // NOTE: Additional fields, if any, are ignored
+        let dir_size = DirSize { size, mtime, name };
+        Ok(dir_size)
+    }
+}
+
+type DirSizes = HashMap<String, DirSize>;
 
 #[cfg(test)]
 mod tests {
