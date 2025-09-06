@@ -14,6 +14,8 @@
 
 //! Trash.
 
+use std::os::unix::fs::MetadataExt;
+
 use camino::{Utf8Path, Utf8PathBuf};
 use chrono::NaiveDateTime;
 use eyre::{ContextCompat, Result, WrapErr};
@@ -164,6 +166,7 @@ impl Default for Trash {
 #[derive(Clone, Debug, PartialEq)]
 struct TrashInfo {
     identifier: String,
+    mtime: u64,
     path: Utf8PathBuf,
     deletion_date: NaiveDateTime,
 }
@@ -184,6 +187,10 @@ impl TrashInfo {
         // NOTE: Utf8Path has no `base_name` method, so we strip the extension ourselves
         let identifier =
             String::from(&file_name[..file_name.len() - (1 + TRASHINFO_EXTENSION.len())]);
+        let metadata = path
+            .metadata()
+            .wrap_err_with(|| format!("Cannot get metadata of trash info file {path}"))?;
+        let mtime = metadata.mtime() as u64;
         // Ini
         let ini = Ini::load_from_file(path)
             .wrap_err_with(|| format!("Error in trash info file {path}"))?;
@@ -215,6 +222,7 @@ impl TrashInfo {
         // Trash info
         Ok(Self {
             identifier,
+            mtime,
             path: path_entry.as_ref().into(),
             deletion_date,
         })
