@@ -126,7 +126,7 @@ impl Trash {
         let trash_file_path = self.files_dir.join(identifier);
         let metadata = trash_file_path
             .symlink_metadata()
-            .with_context(|| format!("Cannot get metadata for {trash_file_path}"))?;
+            .wrap_err_with(|| format!("Cannot get metadata for file {trash_file_path}"))?;
         let size = if metadata.is_dir() {
             // TODO: Compute size and use `directorysizes` file
             0
