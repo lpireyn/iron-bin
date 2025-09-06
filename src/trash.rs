@@ -64,21 +64,14 @@ impl Trash {
         }
     }
 
-    /// Compute the identifier for the given absolute path.
+    /// Compute the identifier for the given path.
     ///
     /// # Panics
     ///
-    /// This function panics if the given path is not absolute.
+    /// This function panics if the given path has no file name
     fn identifier(path: impl AsRef<Utf8Path>) -> String {
         let path = path.as_ref();
-        assert!(path.is_absolute());
-        let components = path
-            .iter()
-            // NOTE: Skip the first component, which is always "/" for an absolute path
-            .skip(1)
-            .map(|component| component.replace('.', "-"))
-            .collect::<Vec<_>>();
-        components.join("_")
+        path.file_name().expect("Path has no file name").to_string()
     }
 
     /// Return the base directory of this trash.
@@ -259,7 +252,7 @@ mod tests {
     fn identifier() {
         assert_eq!(
             Trash::identifier(Utf8PathBuf::from("/abc/def/ghi.xyz")),
-            "abc_def_ghi-xyz"
+            "ghi.xyz"
         );
     }
 }
