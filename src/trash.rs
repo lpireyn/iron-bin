@@ -313,9 +313,17 @@ impl DirSize {
         let mtime = iter
             .next()
             .ok_or_else(|| eyre!("Missing mtime in directorysizes record"))?;
-        let mtime = mtime
+        let mut mtime = mtime
             .parse::<u64>()
             .wrap_err_with(|| format!("Invalid mtime in directorysizes record: {mtime}"))?;
+        // NOTE
+        // The spec says:
+        // > The modification time is stored as an integer, the number of seconds since Epoch.
+        // However, some implementations (e.g. Dolphin) use timestamps in *milliseconds* since Epoch.
+        // So we assume timestamps beyond the year 2100 are given in milliseconds, and correct accordingly.
+        if mtime > 4_200_000_000 {
+            mtime /= 1000;
+        }
         let name = iter
             .next()
             .ok_or_else(|| eyre!("Missing name in directorysizes record"))?;
