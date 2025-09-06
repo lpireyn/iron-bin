@@ -152,7 +152,7 @@ impl Trash {
         let entry = TrashEntry {
             identifier: identifier.to_owned(),
             original_path: trashinfo.path.to_owned(),
-            deletion_date: trashinfo.deletion_date.to_owned(),
+            deletion_time: trashinfo.deletion_time.to_owned(),
             size,
         };
         Ok(entry)
@@ -207,7 +207,7 @@ struct TrashInfo {
     identifier: String,
     mtime: u64,
     path: Utf8PathBuf,
-    deletion_date: NaiveDateTime,
+    deletion_time: NaiveDateTime,
 }
 
 impl TrashInfo {
@@ -259,12 +259,13 @@ impl TrashInfo {
                 )
             })?;
         // Trash info
-        Ok(Self {
+        let trashinfo = Self {
             identifier,
             mtime,
             path: path_entry.as_ref().into(),
-            deletion_date,
-        })
+            deletion_time: deletion_date,
+        };
+        Ok(trashinfo)
     }
 }
 
@@ -273,7 +274,7 @@ impl TrashInfo {
 pub struct TrashEntry {
     identifier: String,
     original_path: Utf8PathBuf,
-    deletion_date: NaiveDateTime,
+    deletion_time: NaiveDateTime,
     size: u64,
 }
 
@@ -282,8 +283,8 @@ impl TrashEntry {
         self.original_path.as_path()
     }
 
-    pub fn deletion_date(&self) -> &NaiveDateTime {
-        &self.deletion_date
+    pub fn deletion_time(&self) -> &NaiveDateTime {
+        &self.deletion_time
     }
 
     pub fn size(&self) -> u64 {
