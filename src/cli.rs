@@ -93,7 +93,7 @@ impl Cli {
                 } else {
                     format!("{}", entry.size())
                 },
-                deletion_date: entry.deletion_date().format("%c").to_string(),
+                deletion_time: entry.deletion_time().format("%c").to_string(),
                 path: quoted(entry.original_path(), is_terminal),
             }));
             table
@@ -154,7 +154,7 @@ enum SortOrder {
     #[default]
     Path,
 
-    /// Deletion date, descending.
+    /// Deletion time, descending.
     Date,
 }
 
@@ -162,7 +162,7 @@ impl SortOrder {
     fn cmp(&self, entry1: &TrashEntry, entry2: &TrashEntry) -> std::cmp::Ordering {
         match *self {
             SortOrder::Path => entry1.original_path().cmp(entry2.original_path()),
-            SortOrder::Date => entry2.deletion_date().cmp(entry1.deletion_date()),
+            SortOrder::Date => entry2.deletion_time().cmp(entry1.deletion_time()),
         }
     }
 }
@@ -173,8 +173,8 @@ struct Record {
     #[tabled(rename = "size")]
     size: String,
 
-    #[tabled(rename = "deletion date")]
-    deletion_date: String,
+    #[tabled(rename = "deletion time")]
+    deletion_time: String,
 
     #[tabled(rename = "original path")]
     path: String,
