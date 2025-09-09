@@ -55,7 +55,7 @@ impl Trash {
         Utf8PathBuf::from_path_buf(
             BaseDirectories::default()
                 .get_data_home()
-                .expect("Undefined environment variable: HOME"),
+                .expect("undefined environment variable: HOME"),
         )
         .expect("XDG data home contains invalid UTF-8 characters")
         .join("Trash")
@@ -81,7 +81,7 @@ impl Trash {
     /// This function panics if the given path has no file name
     fn identifier(path: impl AsRef<Utf8Path>) -> String {
         let path = path.as_ref();
-        path.file_name().expect("Path has no file name").to_string()
+        path.file_name().expect("path has no file name").to_string()
     }
 
     /// Return the base directory of this trash.
@@ -136,7 +136,7 @@ impl Trash {
         let trash_file_path = self.files_dir.join(identifier);
         let metadata = trash_file_path
             .symlink_metadata()
-            .with_context(|| format!("Cannot get metadata for file {trash_file_path}"))?;
+            .with_context(|| format!("cannot get metadata for file {trash_file_path}"))?;
         let size = if metadata.is_dir() {
             if let Some(dir_size) = self.dir_sizes().get(identifier)
                 && dir_size.mtime == trashinfo.mtime
@@ -222,21 +222,18 @@ impl TrashInfo {
         const DELETION_DATE: &str = "DeletionDate";
 
         let path = path.as_ref();
-        let file_name = path.file_name().expect("Trash info path has no file name");
+        let file_name = path.file_name().expect("path has no file name");
         // NOTE: Utf8Path has no `base_name` method, so we strip the extension ourselves
         let identifier =
             String::from(&file_name[..file_name.len() - (1 + TRASHINFO_EXTENSION.len())]);
-        let metadata = path
-            .metadata()
-            .with_context(|| format!("Cannot get metadata of trash info file {path}"))?;
+        let metadata = path.metadata()?;
         let mtime = metadata.mtime() as u64;
         // Ini
-        let ini = Ini::load_from_file(path)
-            .with_context(|| format!("Error in trash info file {path}"))?;
+        let ini = Ini::load_from_file(path)?;
         // Section: Trash Info
         let section = ini
             .section(Some(TRASH_INFO))
-            .with_context(|| format!("Trash info file {path} has no `{TRASH_INFO}` section"))?;
+            .with_context(|| format!("missing section: {TRASH_INFO}"))?;
         // NOTE
         // The spec says:
         // > If a string that starts with “Path=” or “DeletionDate=” occurs several times, the first occurrence is to be used.
@@ -244,20 +241,16 @@ impl TrashInfo {
         // Entry: Path
         let path_entry = section
             .get(PATH)
-            .with_context(|| format!("Trash info file {path} has no `{PATH}` entry"))?;
+            .with_context(|| format!("missing entry: {PATH}"))?;
         let path_entry = urlencoding::decode(path_entry)
-            .with_context(|| format!("Trash info file {path} has invalid URL encoded path"))?;
+            .with_context(|| format!("invalid path: {path_entry}"))?;
         // Entry: Deletion date
         let deletion_date_entry = section
             .get(DELETION_DATE)
-            .with_context(|| format!("Trash info file {path} has no `{DELETION_DATE}` entry"))?;
+            .with_context(|| format!("missing entry: {DELETION_DATE}"))?;
         let deletion_date = deletion_date_entry
             .parse::<NaiveDateTime>()
-            .with_context(|| {
-                format!(
-                    "Trash info file {path} has invalid deletion date \"{deletion_date_entry}\""
-                )
-            })?;
+            .with_context(|| format!("invalid deletion date: {deletion_date_entry}"))?;
         // Trash info
         let trashinfo = Self {
             identifier,
@@ -304,18 +297,14 @@ impl DirSize {
     fn load_from_line(line: impl AsRef<str>) -> Result<DirSize> {
         let line = line.as_ref();
         let mut iter = line.split_whitespace();
-        let size = iter
-            .next()
-            .ok_or_else(|| anyhow!("Missing size in directorysizes record"))?;
+        let size = iter.next().ok_or_else(|| anyhow!("missing size"))?;
         let size = size
             .parse::<u64>()
-            .with_context(|| format!("Invalid size in directorysizes record: {size}"))?;
-        let mtime = iter
-            .next()
-            .ok_or_else(|| anyhow!("Missing mtime in directorysizes record"))?;
+            .with_context(|| format!("invalid size: {size}"))?;
+        let mtime = iter.next().ok_or_else(|| anyhow!("missing mtime"))?;
         let mut mtime = mtime
             .parse::<u64>()
-            .with_context(|| format!("Invalid mtime in directorysizes record: {mtime}"))?;
+            .with_context(|| format!("invalid mtime: {mtime}"))?;
         // NOTE
         // The spec says:
         // > The modification time is stored as an integer, the number of seconds since Epoch.
@@ -324,11 +313,9 @@ impl DirSize {
         if mtime > 4_200_000_000 {
             mtime /= 1000;
         }
-        let name = iter
-            .next()
-            .ok_or_else(|| anyhow!("Missing name in directorysizes record"))?;
+        let name = iter.next().ok_or_else(|| anyhow!("missing name"))?;
         let name = urlencoding::decode(name)
-            .with_context(|| format!("Invalid name in directorysizes record: {name}"))?
+            .with_context(|| format!("invalid name: {name}"))?
             .into_owned();
         // NOTE: Additional fields, if any, are ignored
         let dir_size = DirSize { size, mtime, name };
