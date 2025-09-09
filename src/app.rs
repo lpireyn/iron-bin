@@ -19,9 +19,9 @@ use std::{
     io::{IsTerminal, stdout},
 };
 
+use anyhow::Result;
 use camino::Utf8Path;
 use clap::Parser;
-use eyre::Result;
 use fast_glob::glob_match;
 use humansize::{DECIMAL, FormatSizeOptions, make_format};
 use shell_quote::Sh;
@@ -41,11 +41,6 @@ pub struct App;
 
 impl App {
     pub fn run() -> Result<()> {
-        // Initialize color-eyre
-        // TODO: Disable processing of env var
-        color_eyre::config::HookBuilder::default()
-            .display_env_section(false)
-            .install()?;
         let cli = Cli::parse();
         let app = App;
         match &cli.command {

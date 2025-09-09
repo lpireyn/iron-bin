@@ -12,9 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use eyre::Result;
+use std::process::ExitCode;
+
 use iron_bin::app::App;
 
-fn main() -> Result<()> {
-    App::run()
+/// Entry point of the `trash` command.
+///
+/// # Error handling
+///
+/// This function does not return a `Result` as we don't want the default error handling,
+/// i.e. printing something like `"Error: {:?}"`.
+fn main() -> ExitCode {
+    if let Err(err) = App::run() {
+        eprintln!("error: {err:#}");
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    }
 }
