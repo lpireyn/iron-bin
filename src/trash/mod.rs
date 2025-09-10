@@ -27,7 +27,7 @@ use std::{
 
 use anyhow::{Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
-use chrono::{NaiveDateTime, Utc};
+use chrono::{Local, NaiveDateTime};
 use dir_sizes::DirSizes;
 use info::TrashInfo;
 use xdg::BaseDirectories;
@@ -183,7 +183,7 @@ impl Trash {
 
     pub(crate) fn put(&self, path: impl AsRef<Utf8Path>) -> Result<TrashPutReport> {
         let path = path.as_ref().canonicalize_utf8()?;
-        let deletion_time = Utc::now().naive_utc();
+        let deletion_time = Local::now().naive_utc();
         let trashinfo = TrashInfo::new(&path, deletion_time);
         self.create_dirs()?;
         let (identifier, trashinfo_file) = self.open_new_trashinfo_file(&path)?;
