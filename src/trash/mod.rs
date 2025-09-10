@@ -17,11 +17,17 @@
 mod dir_sizes;
 mod info;
 
-use std::{cell::OnceCell, collections::HashMap, os::unix::fs::MetadataExt};
+use std::{
+    cell::OnceCell,
+    collections::HashMap,
+    fs::{File, OpenOptions, create_dir_all, rename},
+    io::{BufReader, BufWriter, ErrorKind},
+    os::unix::fs::MetadataExt,
+};
 
 use anyhow::{Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Utc};
 use dir_sizes::DirSizes;
 use info::TrashInfo;
 use xdg::BaseDirectories;
@@ -131,8 +137,8 @@ impl Trash {
         let identifier =
             String::from(&file_name[..file_name.len() - (1 + TRASHINFO_EXTENSION.len())]);
         // Load trashinfo
-        let trashinfo = TrashInfo::load_from_file(trashinfo_path)
-            .with_context(|| format!("cannot read trashinfo file {trashinfo_path}"))?;
+        let trashinfo_file = File::open(trashinfo_path)?;
+        let trashinfo = TrashInfo::read_from(&mut BufReader::new(trashinfo_file))?;
         // Examine file
         let file_path = self.files_dir.join(&identifier);
         let file_metadata = file_path
@@ -165,6 +171,65 @@ impl Trash {
             size,
         };
         Ok(entry)
+    }
+
+    fn create_dirs(&self) -> Result<()> {
+        for dir in [&self.base_dir, &self.info_dir, &self.files_dir] {
+            create_dir_all(dir)
+                .with_context(|| format!("cannot create trash directory at {dir}"))?;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn put(&self, path: impl AsRef<Utf8Path>) -> Result<TrashPutReport> {
+        let path = path.as_ref().canonicalize_utf8()?;
+        let deletion_time = Utc::now().naive_utc();
+        let trashinfo = TrashInfo::new(&path, deletion_time);
+        self.create_dirs()?;
+        let (identifier, trashinfo_file) = self.open_new_trashinfo_file(&path)?;
+        trashinfo.write_to(&mut BufWriter::new(trashinfo_file))?;
+        let file_path = self.files_dir.join(identifier);
+        rename(&path, &file_path)?;
+        Ok(TrashPutReport { path })
+    }
+
+    /// Create and open a new `.trashinfo` file in this trash for the given path.
+    fn open_new_trashinfo_file(&self, path: impl AsRef<Utf8Path>) -> Result<(String, File)> {
+        let path = path.as_ref();
+        let base_identifier = identifier(path);
+        let mut number = 0_u16;
+        loop {
+            let identifier = if number == 0 {
+                base_identifier.clone()
+            } else {
+                format!("{base_identifier}_{number}")
+            };
+            let trashinfo_path = self
+                .info_dir
+                .join(format!("{identifier}.{TRASHINFO_EXTENSION}"));
+            match OpenOptions::new()
+                .create_new(true)
+                .write(true)
+                .open(trashinfo_path)
+            {
+                // The trashinfo file could be created
+                Result::Ok(file) => break Ok((identifier, file)),
+                // The trashinfo file could not be created
+                Result::Err(err) => match err.kind() {
+                    // A trashinfo file already exists for the identifier
+                    ErrorKind::AlreadyExists => {
+                        // TODO: Handle overflow
+                        number += 1;
+                        continue;
+                    }
+                    // Another error occurred
+                    _ => {
+                        break Err(err)
+                            .with_context(|| format!("cannot create trashinfo file for {path}"));
+                    }
+                },
+            }
+        }
     }
 
     fn dir_sizes(&self) -> &DirSizes {
@@ -221,12 +286,60 @@ impl TrashEntry {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct TrashPutReport {
+    pub(crate) path: Utf8PathBuf,
+}
+
 #[cfg(test)]
 mod tests {
+    use assert_fs::{NamedTempFile, TempDir, prelude::FileWriteStr};
+
     use super::*;
+
+    fn new_test_trash() -> Trash {
+        let base_dir = TempDir::new().unwrap();
+        let base_dir = Utf8Path::from_path(base_dir.path()).unwrap();
+        Trash::new(base_dir)
+    }
 
     #[test]
     fn test_identifier() {
-        assert_eq!(identifier(Utf8PathBuf::from("/abc/def/ghi.xyz")), "ghi.xyz");
+        let identifier = identifier(Utf8PathBuf::from("/abc/def/ghi.xyz"));
+        assert_eq!(identifier, "ghi.xyz");
+    }
+
+    #[test]
+    fn test_entries_empty() {
+        let trash = new_test_trash();
+        let entries = trash.entries().unwrap().collect::<Vec<_>>();
+        assert!(entries.is_empty());
+    }
+
+    #[test]
+    fn test_put_path_not_found() {
+        let trash = new_test_trash();
+        let test_dir = TempDir::new().unwrap();
+        let test_file = Utf8Path::from_path(test_dir.path())
+            .unwrap()
+            .join("test.txt");
+        let result = trash.put(&test_file);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_put_file() {
+        let trash = new_test_trash();
+        let test_file = NamedTempFile::new("test").unwrap();
+        test_file.write_str("abc").unwrap();
+        let test_file_path = Utf8Path::from_path(test_file.path()).unwrap();
+        let test_file_canonical_path = test_file_path.canonicalize_utf8().unwrap();
+        let test_file_size = test_file.symlink_metadata().unwrap().len();
+        trash.put(test_file_path).unwrap();
+        let entries = trash.entries().unwrap().collect::<Vec<_>>();
+        assert_eq!(entries.len(), 1);
+        let entry = entries.first().unwrap().as_ref().unwrap();
+        assert_eq!(entry.original_path, test_file_canonical_path);
+        assert_eq!(entry.size, test_file_size);
     }
 }
