@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! Integration tests for the `trash` command.
+
 use assert_cmd::Command;
 use assert_fs::TempDir;
 use predicates::prelude::*;
@@ -23,7 +25,7 @@ fn trash_command() -> Result<Command> {
 }
 
 #[test]
-fn option_version() -> Result<()> {
+fn test_option_version() -> Result<()> {
     let pkg_version = env!("CARGO_PKG_VERSION");
     trash_command()?
         .arg("--version")
@@ -35,7 +37,7 @@ fn option_version() -> Result<()> {
 }
 
 #[test]
-fn option_help() -> Result<()> {
+fn test_option_help() -> Result<()> {
     trash_command()?
         .arg("--help")
         .assert()
@@ -47,7 +49,7 @@ fn option_help() -> Result<()> {
 }
 
 #[test]
-fn absent_trash_dir() -> Result<()> {
+fn test_list_absent_trash_dir() -> Result<()> {
     let temp_dir = TempDir::new().unwrap();
     trash_command()?
         .arg("list")
