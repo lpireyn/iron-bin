@@ -32,6 +32,7 @@ use tabled::{
 
 use crate::{
     cli::{Cli, Command, ListArgs, PutArgs, SortOrder},
+    prompt::prompt,
     trash::{Trash, TrashEntry},
 };
 
@@ -119,21 +120,23 @@ impl App {
             interactive,
             verbose,
         } = args;
-        let mut trashed: usize = 0;
-        let mut errors: usize = 0;
+        let should_prompt = *interactive && stdout().is_terminal();
+        let mut trashed = 0_usize;
+        let mut errors = 0_usize;
         for path in paths {
             if let Some(path) = Utf8Path::from_path(path) {
-                // TODO: Prompt user if interactive flag is set
-                match trash.put(path) {
-                    Result::Ok(report) => {
-                        if *verbose {
-                            println!("trashed {}", report.path);
+                if !should_prompt || prompt(format!("trash {path}?"))? {
+                    match trash.put(path) {
+                        Result::Ok(report) => {
+                            if *verbose {
+                                println!("trashed {}", report.path);
+                            }
+                            trashed += 1;
                         }
-                        trashed += 1;
-                    }
-                    Result::Err(err) => {
-                        eprintln!("cannot trash {path}: {err:#}");
-                        errors += 1;
+                        Result::Err(err) => {
+                            eprintln!("cannot trash {path}: {err:#}");
+                            errors += 1;
+                        }
                     }
                 }
             } else {
