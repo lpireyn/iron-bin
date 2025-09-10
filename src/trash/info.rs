@@ -26,6 +26,10 @@ const DELETION_DATE: &str = "DeletionDate";
 /// Trash info.
 ///
 /// Represents the contents of a `.trashinfo` file in the info directory of a trash.
+///
+/// # Implementation
+///
+/// The rust-ini crate is used to read and write the `.trashinfo` file.
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct TrashInfo {
     path: Utf8PathBuf,
@@ -34,10 +38,6 @@ pub(super) struct TrashInfo {
 
 impl TrashInfo {
     /// Create a trash info from the contents of a `.trashinfo` file.
-    ///
-    /// # Implementation
-    ///
-    /// This function uses the rust-ini crate to read the `.trashinfo` file.
     pub(super) fn load_from_file(path: impl AsRef<Utf8Path>) -> Result<Self> {
         let path = path.as_ref();
         // Ini
@@ -77,5 +77,24 @@ impl TrashInfo {
 
     pub(super) fn deletion_time(&self) -> &NaiveDateTime {
         &self.deletion_time
+    }
+
+    /// Write this trash info to a `.trashinfo` file.
+    pub(super) fn write_to_file(&self, path: impl AsRef<Utf8Path>) -> Result<()> {
+        let path = path.as_ref();
+        // Ini
+        let mut ini = Ini::new();
+        ini
+            // Section: Trash Info
+            .with_section(Some(TRASH_INFO))
+            // Entry: Path
+            .set(PATH, urlencoding::encode(self.path.as_str()))
+            // Entry: Deletion date
+            .set(
+                DELETION_DATE,
+                self.deletion_time.format("%Y-%m-%dT%H:%M:%S").to_string(),
+            );
+        ini.write_to_file(path)?;
+        Ok(())
     }
 }
