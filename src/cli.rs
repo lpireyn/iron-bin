@@ -14,6 +14,8 @@
 
 //! CLI.
 
+use std::path::PathBuf;
+
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
 /// Perform various operations on the trash.
@@ -31,9 +33,13 @@ pub(crate) enum Command {
     /// List the files in the trash.
     #[command(visible_alias = "ls")]
     List(ListArgs),
+
+    /// Put files in the trash.
+    #[command()]
+    Put(PutArgs),
 }
 
-/// Arguments to the list command.
+/// Arguments to the `list` command.
 #[derive(Args, Clone, Debug, PartialEq)]
 pub(crate) struct ListArgs {
     /// Verbose output.
@@ -65,7 +71,7 @@ pub(crate) struct ListArgs {
     pub(crate) patterns: Vec<String>,
 }
 
-/// Sort order for the list command.
+/// Sort order for the `list` command.
 #[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
 pub(crate) enum SortOrder {
     /// Path, ascending.
@@ -74,4 +80,20 @@ pub(crate) enum SortOrder {
 
     /// Deletion time, descending.
     Date,
+}
+
+/// Arguments to the `put` command.
+#[derive(Args, Clone, Debug, PartialEq)]
+pub(crate) struct PutArgs {
+    /// Prompt before every path.
+    #[arg(long, short = 'i')]
+    pub(crate) interactive: bool,
+
+    /// Verbose output.
+    #[arg(long, short = 'v')]
+    pub(crate) verbose: bool,
+
+    /// Paths.
+    #[arg(required = true, value_name = "PATH")]
+    pub(crate) paths: Vec<PathBuf>,
 }

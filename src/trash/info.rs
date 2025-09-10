@@ -14,6 +14,8 @@
 
 //! Trash info.
 
+use std::io::{Read, Write};
+
 use anyhow::{Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use chrono::NaiveDateTime;
@@ -29,7 +31,7 @@ const DELETION_DATE: &str = "DeletionDate";
 ///
 /// # Implementation
 ///
-/// The rust-ini crate is used to read and write the `.trashinfo` file.
+/// The rust-ini crate is used to read and write the trash info.
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct TrashInfo {
     path: Utf8PathBuf,
@@ -37,11 +39,20 @@ pub(super) struct TrashInfo {
 }
 
 impl TrashInfo {
-    /// Create a trash info from the contents of a `.trashinfo` file.
-    pub(super) fn load_from_file(path: impl AsRef<Utf8Path>) -> Result<Self> {
-        let path = path.as_ref();
+    pub(super) fn new(
+        path: impl Into<Utf8PathBuf>,
+        deletion_time: impl Into<NaiveDateTime>,
+    ) -> Self {
+        Self {
+            path: path.into(),
+            deletion_time: deletion_time.into(),
+        }
+    }
+
+    /// Read trash info from the given reader.
+    pub(super) fn read_from(reader: &mut impl Read) -> Result<Self> {
         // Ini
-        let ini = Ini::load_from_file(path)?;
+        let ini = Ini::read_from(reader)?;
         // Section: Trash Info
         let section = ini
             .section(Some(TRASH_INFO))
@@ -79,10 +90,7 @@ impl TrashInfo {
         &self.deletion_time
     }
 
-    /// Write this trash info to a `.trashinfo` file.
-    pub(super) fn write_to_file(&self, path: impl AsRef<Utf8Path>) -> Result<()> {
-        let path = path.as_ref();
-        // Ini
+    fn to_ini(&self) -> Ini {
         let mut ini = Ini::new();
         ini
             // Section: Trash Info
@@ -94,32 +102,30 @@ impl TrashInfo {
                 DELETION_DATE,
                 self.deletion_time.format("%Y-%m-%dT%H:%M:%S").to_string(),
             );
-        ini.write_to_file(path)?;
+        ini
+    }
+
+    /// Write this trash info to the given writer.
+    pub(super) fn write_to(&self, writer: &mut impl Write) -> Result<()> {
+        self.to_ini().write_to(writer)?;
         Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::fs::{self, read_to_string};
-
     use chrono::{NaiveDate, NaiveTime};
 
     use super::*;
 
     #[test]
-    fn test_load_from_file() {
-        let file = assert_fs::NamedTempFile::new("test.trashinfo").unwrap();
-        let path = Utf8Path::from_path(file.path()).unwrap();
-        fs::write(
-            path,
-            "[Trash Info]
+    fn test_read_from() {
+        let mut trashinfo = "[Trash Info]
 Path=%2Fabc%2Fdef%2Fghi.xyz
 DeletionDate=2025-02-17T13:14:15
-",
-        )
-        .unwrap();
-        let trashinfo = TrashInfo::load_from_file(path).unwrap();
+"
+        .as_bytes();
+        let trashinfo = TrashInfo::read_from(&mut trashinfo).unwrap();
         assert_eq!(
             trashinfo,
             TrashInfo {
@@ -133,9 +139,7 @@ DeletionDate=2025-02-17T13:14:15
     }
 
     #[test]
-    fn test_write_to_file() {
-        let file = assert_fs::NamedTempFile::new("test.trashinfo").unwrap();
-        let path = Utf8Path::from_path(file.path()).unwrap();
+    fn test_write_to() {
         let trashinfo = TrashInfo {
             path: Utf8PathBuf::from("/abc/def/ghi.xyz"),
             deletion_time: NaiveDateTime::new(
@@ -143,9 +147,10 @@ DeletionDate=2025-02-17T13:14:15
                 NaiveTime::from_hms_opt(13, 14, 15).unwrap(),
             ),
         };
-        trashinfo.write_to_file(path).unwrap();
+        let mut v = Vec::<u8>::new();
+        trashinfo.write_to(&mut v).unwrap();
         assert_eq!(
-            read_to_string(path).unwrap(),
+            String::from_utf8(v).unwrap(),
             "[Trash Info]
 Path=%2Fabc%2Fdef%2Fghi.xyz
 DeletionDate=2025-02-17T13:14:15

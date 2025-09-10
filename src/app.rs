@@ -19,7 +19,7 @@ use std::{
     io::{IsTerminal, stdout},
 };
 
-use anyhow::Result;
+use anyhow::{Result, bail};
 use camino::Utf8Path;
 use clap::Parser;
 use fast_glob::glob_match;
@@ -31,7 +31,7 @@ use tabled::{
 };
 
 use crate::{
-    cli::{Cli, Command, ListArgs, SortOrder},
+    cli::{Cli, Command, ListArgs, PutArgs, SortOrder},
     trash::{Trash, TrashEntry},
 };
 
@@ -45,6 +45,7 @@ impl App {
         let app = App;
         match &cli.command {
             Command::List(args) => app.list(args),
+            Command::Put(args) => app.put(args),
         }
     }
 
@@ -107,6 +108,44 @@ impl App {
             // TODO: Hide column headers
             println!("total {}", entries.len());
             println!("{table}");
+        }
+        Ok(())
+    }
+
+    fn put(&self, args: &PutArgs) -> Result<()> {
+        let trash = Trash::default();
+        let PutArgs {
+            paths,
+            interactive,
+            verbose,
+        } = args;
+        let mut trashed: usize = 0;
+        let mut errors: usize = 0;
+        for path in paths {
+            if let Some(path) = Utf8Path::from_path(path) {
+                // TODO: Prompt user if interactive flag is set
+                match trash.put(path) {
+                    Result::Ok(report) => {
+                        if *verbose {
+                            println!("trashed {}", report.path);
+                        }
+                        trashed += 1;
+                    }
+                    Result::Err(err) => {
+                        eprintln!("cannot trash {path}: {err:#}");
+                        errors += 1;
+                    }
+                }
+            } else {
+                eprintln!("invalid UTF-8 path: {}", path.display());
+                errors += 1;
+            }
+        }
+        if *verbose {
+            println!("total {trashed} trashed");
+        }
+        if errors > 0 {
+            bail!("{errors} not trashed");
         }
         Ok(())
     }
