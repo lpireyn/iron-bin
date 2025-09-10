@@ -98,3 +98,58 @@ impl TrashInfo {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs::{self, read_to_string};
+
+    use chrono::{NaiveDate, NaiveTime};
+
+    use super::*;
+
+    #[test]
+    fn test_load_from_file() {
+        let file = assert_fs::NamedTempFile::new("test.trashinfo").unwrap();
+        let path = Utf8Path::from_path(file.path()).unwrap();
+        fs::write(
+            path,
+            "[Trash Info]
+Path=%2Fabc%2Fdef%2Fghi.xyz
+DeletionDate=2025-02-17T13:14:15
+",
+        )
+        .unwrap();
+        let trashinfo = TrashInfo::load_from_file(path).unwrap();
+        assert_eq!(
+            trashinfo,
+            TrashInfo {
+                path: Utf8PathBuf::from("/abc/def/ghi.xyz"),
+                deletion_time: NaiveDateTime::new(
+                    NaiveDate::from_ymd_opt(2025, 2, 17).unwrap(),
+                    NaiveTime::from_hms_opt(13, 14, 15).unwrap(),
+                ),
+            }
+        );
+    }
+
+    #[test]
+    fn test_write_to_file() {
+        let file = assert_fs::NamedTempFile::new("test.trashinfo").unwrap();
+        let path = Utf8Path::from_path(file.path()).unwrap();
+        let trashinfo = TrashInfo {
+            path: Utf8PathBuf::from("/abc/def/ghi.xyz"),
+            deletion_time: NaiveDateTime::new(
+                NaiveDate::from_ymd_opt(2025, 2, 17).unwrap(),
+                NaiveTime::from_hms_opt(13, 14, 15).unwrap(),
+            ),
+        };
+        trashinfo.write_to_file(path).unwrap();
+        assert_eq!(
+            read_to_string(path).unwrap(),
+            "[Trash Info]
+Path=%2Fabc%2Fdef%2Fghi.xyz
+DeletionDate=2025-02-17T13:14:15
+"
+        );
+    }
+}
