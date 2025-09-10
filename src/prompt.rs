@@ -12,12 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO: Remove these before first release
-#![allow(dead_code, unused_variables)]
+//! Prompt.
 
-pub mod app;
+use anyhow::{Context, Result};
+use dialoguer::Confirm;
 
-pub(crate) mod camino_ext;
-pub(crate) mod cli;
-pub(crate) mod prompt;
-pub(crate) mod trash;
+/// Prompt the user for a y/n answer to a question.
+pub(crate) fn prompt(question: impl AsRef<str>) -> Result<bool> {
+    let question = question.as_ref();
+    Confirm::new()
+        .with_prompt(question)
+        .wait_for_newline(true)
+        .report(false)
+        .interact()
+        .context("cannot prompt")
+}
