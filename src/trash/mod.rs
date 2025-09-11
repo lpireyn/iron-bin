@@ -190,7 +190,11 @@ impl Trash {
         trashinfo.write_to(&mut BufWriter::new(trashinfo_file))?;
         let file_path = self.files_dir.join(identifier);
         rename(&path, &file_path)?;
-        Ok(TrashPutReport { path })
+        let report = TrashPutReport {
+            path,
+            deletion_time,
+        };
+        Ok(report)
     }
 
     /// Create and open a new `.trashinfo` file in this trash for the given path.
@@ -289,6 +293,7 @@ impl TrashEntry {
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct TrashPutReport {
     pub(crate) path: Utf8PathBuf,
+    pub(crate) deletion_time: NaiveDateTime,
 }
 
 #[cfg(test)]

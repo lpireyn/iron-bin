@@ -135,7 +135,11 @@ impl App {
                     match trash.put(path) {
                         Result::Ok(report) => {
                             if *verbose {
-                                println!("trashed {}", report.path);
+                                println!(
+                                    "trashed {} on {}",
+                                    report.path,
+                                    Local.from_utc_datetime(&report.deletion_time).format("%c")
+                                );
                             }
                             trashed += 1;
                         }
