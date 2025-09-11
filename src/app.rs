@@ -16,12 +16,13 @@
 
 use std::{
     cmp::Ordering,
+    fmt::Display,
     io::{IsTerminal, stdout},
 };
 
 use anyhow::{Result, bail};
 use camino::Utf8Path;
-use chrono::{Local, TimeZone};
+use chrono::{Local, NaiveDateTime, TimeZone};
 use clap::Parser;
 use fast_glob::glob_match;
 use humansize::{DECIMAL, FormatSizeOptions, make_format};
@@ -95,19 +96,14 @@ impl App {
             // NOTE: We use the DECIMAL format but remove the space after the value to mimic the behavior of `ls -lh`
             let size_formatter =
                 make_format(FormatSizeOptions::from(DECIMAL).space_after_value(false));
-            let mut table = Table::new(entries.iter().map(|entry| {
-                Record {
-                    size: if args.human_readable {
-                        size_formatter(entry.size())
-                    } else {
-                        format!("{}", entry.size())
-                    },
-                    deletion_time: Local
-                        .from_utc_datetime(entry.deletion_time())
-                        .format("%c")
-                        .to_string(),
-                    path: quoted(entry.original_path(), is_terminal),
-                }
+            let mut table = Table::new(entries.iter().map(|entry| Record {
+                size: if args.human_readable {
+                    size_formatter(entry.size())
+                } else {
+                    format!("{}", entry.size())
+                },
+                deletion_time: format_datetime(entry.deletion_time()).to_string(),
+                path: quoted(entry.original_path(), is_terminal),
             }));
             table
                 .with(Style::empty())
@@ -138,7 +134,7 @@ impl App {
                                 println!(
                                     "trashed {} on {}",
                                     report.path,
-                                    Local.from_utc_datetime(&report.deletion_time).format("%c")
+                                    format_datetime(&report.deletion_time)
                                 );
                             }
                             trashed += 1;
@@ -162,6 +158,10 @@ impl App {
         }
         Ok(())
     }
+}
+
+fn format_datetime(datetime: &NaiveDateTime) -> impl Display {
+    Local.from_utc_datetime(datetime).format("%c")
 }
 
 /// Table record for a trash entry.
