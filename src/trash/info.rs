@@ -51,8 +51,29 @@ impl TrashInfo {
 
     /// Read trash info from the given reader.
     pub(super) fn read_from(reader: &mut impl Read) -> Result<Self> {
-        // Ini
         let ini = Ini::read_from(reader)?;
+        TrashInfo::try_from(&ini)
+    }
+
+    pub(super) fn path(&self) -> &Utf8Path {
+        &self.path
+    }
+
+    pub(super) fn deletion_time(&self) -> &NaiveDateTime {
+        &self.deletion_time
+    }
+
+    /// Write this trash info to the given writer.
+    pub(super) fn write_to(&self, writer: &mut impl Write) -> Result<()> {
+        Ini::from(self).write_to(writer)?;
+        Ok(())
+    }
+}
+
+impl TryFrom<&Ini> for TrashInfo {
+    type Error = anyhow::Error;
+
+    fn try_from(ini: &Ini) -> std::result::Result<Self, Self::Error> {
         // Section: Trash Info
         let section = ini
             .section(Some(TRASH_INFO))
@@ -75,40 +96,28 @@ impl TrashInfo {
             .parse::<NaiveDateTime>()
             .with_context(|| format!("invalid deletion date: {deletion_date_entry}"))?;
         // Trash info
-        let trashinfo = Self {
+        let info = Self {
             path: path_entry.as_ref().into(),
             deletion_time: deletion_date,
         };
-        Ok(trashinfo)
+        Ok(info)
     }
+}
 
-    pub(super) fn path(&self) -> &Utf8Path {
-        &self.path
-    }
-
-    pub(super) fn deletion_time(&self) -> &NaiveDateTime {
-        &self.deletion_time
-    }
-
-    fn to_ini(&self) -> Ini {
+impl From<&TrashInfo> for Ini {
+    fn from(info: &TrashInfo) -> Ini {
         let mut ini = Ini::new();
         ini
             // Section: Trash Info
             .with_section(Some(TRASH_INFO))
             // Entry: Path
-            .set(PATH, urlencoding::encode(self.path.as_str()))
+            .set(PATH, urlencoding::encode(info.path.as_str()))
             // Entry: Deletion date
             .set(
                 DELETION_DATE,
-                self.deletion_time.format("%Y-%m-%dT%H:%M:%S").to_string(),
+                info.deletion_time.format("%Y-%m-%dT%H:%M:%S").to_string(),
             );
         ini
-    }
-
-    /// Write this trash info to the given writer.
-    pub(super) fn write_to(&self, writer: &mut impl Write) -> Result<()> {
-        self.to_ini().write_to(writer)?;
-        Ok(())
     }
 }
 
