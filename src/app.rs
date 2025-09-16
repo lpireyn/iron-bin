@@ -24,7 +24,6 @@ use anyhow::{Result, bail};
 use camino::Utf8Path;
 use chrono::NaiveDateTime;
 use clap::Parser;
-use fast_glob::glob_match;
 use humansize::{DECIMAL, FormatSizeOptions, make_format};
 use shell_quote::Sh;
 use tabled::{
@@ -66,18 +65,10 @@ impl App {
         }
 
         let trash = Trash::default();
-        let patterns = &args.patterns;
         let mut entries = trash
             .entries()?
             // NOTE: Errors are discarded
             .filter_map(|entry| entry.ok())
-            // Filter entries according to patterns, if any
-            .filter(|entry| {
-                patterns.is_empty()
-                    || patterns
-                        .iter()
-                        .any(|pattern| glob_match(pattern, entry.original_path().as_str()))
-            })
             .collect::<Vec<_>>();
         // Sort entries
         let compare: fn(&TrashEntry, &TrashEntry) -> Ordering = match &args.sort_order {

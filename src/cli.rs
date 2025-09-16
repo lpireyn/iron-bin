@@ -62,13 +62,6 @@ pub(crate) struct ListArgs {
         value_name = "ORDER"
     )]
     pub(crate) sort_order: SortOrder,
-
-    /// Path patterns.
-    ///
-    /// Should be quoted to avoid shell expansion.
-    // TODO: Document supported patterns (see https://docs.rs/fast-glob/latest/fast_glob/#syntax)
-    #[arg(value_name = "PATTERN")]
-    pub(crate) patterns: Vec<String>,
 }
 
 /// Sort order for the `list` command.
