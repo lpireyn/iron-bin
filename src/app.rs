@@ -22,7 +22,7 @@ use std::{
 
 use anyhow::{Result, bail};
 use camino::Utf8Path;
-use chrono::{Local, NaiveDateTime, TimeZone};
+use chrono::NaiveDateTime;
 use clap::Parser;
 use fast_glob::glob_match;
 use humansize::{DECIMAL, FormatSizeOptions, make_format};
@@ -161,7 +161,7 @@ impl App {
 }
 
 fn format_datetime(datetime: &NaiveDateTime) -> impl Display {
-    Local.from_utc_datetime(datetime).format("%c")
+    datetime.format("%c")
 }
 
 /// Table record for a trash entry.

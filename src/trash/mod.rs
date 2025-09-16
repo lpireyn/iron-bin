@@ -182,7 +182,7 @@ impl Trash {
 
     pub(crate) fn put(&self, path: impl AsRef<Utf8Path>) -> Result<TrashPutReport> {
         let path = path.as_ref().canonicalize_utf8()?;
-        let deletion_time = Local::now().naive_utc();
+        let deletion_time = Local::now().naive_local();
         let trashinfo = TrashInfo::new(&path, deletion_time);
         self.create_dirs()?;
         let (identifier, trashinfo_file) = self.open_new_trashinfo_file(&path)?;
