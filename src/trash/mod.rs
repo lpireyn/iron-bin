@@ -19,7 +19,6 @@ mod info;
 
 use std::{
     cell::OnceCell,
-    collections::HashMap,
     fs::{File, OpenOptions, create_dir_all, rename},
     io::{BufReader, BufWriter, ErrorKind},
     os::unix::fs::MetadataExt,
@@ -244,9 +243,10 @@ impl Trash {
         })
     }
 
-    fn load_dir_sizes(&self) -> Result<HashMap<String, dir_sizes::DirSize>> {
+    fn load_dir_sizes(&self) -> Result<DirSizes> {
         let path = self.base_dir.join("directorysizes");
-        dir_sizes::load_from_file(path)
+        let mut file = File::open(path)?;
+        dir_sizes::read_from(&mut file)
     }
 }
 
