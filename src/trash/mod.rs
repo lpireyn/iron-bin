@@ -277,6 +277,10 @@ pub(crate) struct TrashEntry {
 }
 
 impl TrashEntry {
+    pub(crate) fn identifier(&self) -> &str {
+        &self.identifier
+    }
+
     pub(crate) fn original_path(&self) -> &Utf8Path {
         &self.original_path
     }
