@@ -20,7 +20,7 @@ use std::{
     io::{stdout, IsTerminal},
 };
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use camino::Utf8Path;
 use chrono::NaiveDateTime;
 use clap::Parser;
@@ -32,7 +32,7 @@ use tabled::{
 };
 
 use crate::{
-    cli::{Cli, Command, ListArgs, PutArgs, SortOrder},
+    cli::{Cli, Command, ListArgs, PutArgs, RestoreArgs, SortOrder},
     prompt::prompt,
     trash::{Trash, TrashEntry},
 };
@@ -48,6 +48,7 @@ impl App {
         match &cli.command {
             Command::List(args) => app.list(args),
             Command::Put(args) => app.put(args),
+            Command::Restore(args) => app.restore(args),
         }
     }
 
@@ -147,6 +148,100 @@ impl App {
         }
         if errors > 0 {
             bail!("{errors} not trashed");
+        }
+        Ok(())
+    }
+
+    fn restore(&self, args: &RestoreArgs) -> Result<()> {
+        let trash = Trash::default();
+        let RestoreArgs {
+            interactive,
+            verbose,
+            paths,
+        } = args;
+        // Make paths absolute
+        // NOTE: We cannot use PathBuf::canonicalize here, as the paths likely don't exist anymore
+        let current_dir = std::env::current_dir().context("cannot determine current directory")?;
+        let paths = paths
+            .iter()
+            .map(|path| current_dir.join(path))
+            .collect::<Vec<_>>();
+        let mut restored = 0_usize;
+        let mut errors = 0_usize;
+        // Discard invalid UTF-8 paths
+        let paths = paths
+            .iter()
+            .filter_map(|path| {
+                Utf8Path::from_path(path).or_else(|| {
+                    eprintln!("invalid UTF-8 path: {}", path.display());
+                    errors += 1;
+                    None
+                })
+            })
+            .collect::<Vec<_>>();
+        // Get entries
+        let entries = trash.entries()?;
+        // Discard entries in error
+        let mut entries = entries.filter_map(|entry| entry.ok()).collect::<Vec<_>>();
+        // Sort entries by deletion time, descending
+        entries.sort_by(comparator(&SortOrder::Date));
+        // Determine entries to restore
+        let entries = if paths.is_empty() {
+            // No paths specified, take the most recent entry
+            if let Some(entry) = entries.first() {
+                vec![entry]
+            } else {
+                bail!("empty trash");
+            }
+        } else {
+            // Path(s) specified, take most recent entry for each path
+            paths
+                .into_iter()
+                .filter_map(|path| {
+                    entries
+                        .iter()
+                        .find(|entry| entry.original_path() == path)
+                        .or_else(|| {
+                            eprintln!("file {path} not found in trash");
+                            None
+                        })
+                })
+                .collect()
+        };
+        // Restore entries
+        let should_prompt = *interactive && stdout().is_terminal();
+        for entry in entries {
+            let identifier = entry.identifier();
+            let original_path = entry.original_path();
+            let deletion_time = entry.deletion_time();
+            let deletion_time_disp = format_datetime(deletion_time);
+            if !should_prompt
+                || prompt(format!(
+                    "restore {original_path} trashed on {deletion_time_disp}?"
+                ))?
+            {
+                match trash.restore(identifier) {
+                    Result::Ok(report) => {
+                        if *verbose {
+                            println!(
+                                "restored {} trashed on {}",
+                                report.path, report.deletion_time
+                            );
+                        }
+                        restored += 1;
+                    }
+                    Result::Err(err) => {
+                        eprintln!("cannot restore {}: {err:#}", entry.original_path());
+                        errors += 1;
+                    }
+                }
+            }
+        }
+        if *verbose {
+            println!("total {restored} restored");
+        }
+        if errors > 0 {
+            bail!("{errors} not restored");
         }
         Ok(())
     }

@@ -37,6 +37,10 @@ pub(crate) enum Command {
     /// Put files in the trash.
     #[command()]
     Put(PutArgs),
+
+    /// Restore files from the trash.
+    #[command()]
+    Restore(RestoreArgs),
 }
 
 /// Arguments to the `list` command.
@@ -88,5 +92,25 @@ pub(crate) struct PutArgs {
 
     /// Paths.
     #[arg(required = true, value_name = "PATH")]
+    pub(crate) paths: Vec<PathBuf>,
+}
+
+/// Arguments to the `restore` command.
+#[derive(Args, Clone, Debug, PartialEq)]
+pub(crate) struct RestoreArgs {
+    /// Prompt before every path.
+    #[arg(long, short = 'i')]
+    pub(crate) interactive: bool,
+
+    /// Verbose output.
+    #[arg(long, short = 'v')]
+    pub(crate) verbose: bool,
+
+    /// Paths.
+    ///
+    /// Defaults to the most recently trashed file.
+    ///
+    /// Should be quoted to avoid shell expansion.
+    #[arg(value_name = "PATH")]
     pub(crate) paths: Vec<PathBuf>,
 }

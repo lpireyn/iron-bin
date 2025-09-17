@@ -17,18 +17,18 @@
 mod dir_sizes;
 mod info;
 
-use std::{
-    cell::OnceCell,
-    fs::{File, OpenOptions, create_dir_all, rename},
-    io::{BufReader, BufWriter, ErrorKind},
-    os::unix::fs::MetadataExt,
-};
-
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use chrono::{Local, NaiveDateTime};
 use dir_sizes::DirSizes;
 use info::TrashInfo;
+use std::fs::remove_file;
+use std::{
+    cell::OnceCell,
+    fs::{create_dir_all, rename, File, OpenOptions},
+    io::{BufReader, BufWriter, ErrorKind},
+    os::unix::fs::MetadataExt,
+};
 use xdg::BaseDirectories;
 
 use crate::camino_ext::read_dir_utf8_or_empty;
@@ -235,6 +235,43 @@ impl Trash {
         }
     }
 
+    pub(crate) fn restore(&self, identifier: impl AsRef<str>) -> Result<TrashRestoreReport> {
+        let identifier = identifier.as_ref();
+        // Read trashinfo
+        let trashinfo_path = self
+            .info_dir
+            .join(format!("{identifier}.{TRASHINFO_EXTENSION}"));
+        let trashinfo = {
+            let mut trashinfo_file = File::open(&trashinfo_path)
+                .with_context(|| format!("cannot open trashinfo file {trashinfo_path}"))?;
+            TrashInfo::read_from(&mut trashinfo_file)
+                .with_context(|| format!("cannot read trashinfo file {trashinfo_path}"))?
+        };
+        let original_path = trashinfo.path();
+        let deletion_time = trashinfo.deletion_time();
+        // Check if original path is available
+        if original_path.exists() {
+            bail!("file {original_path} already exists");
+        }
+        // Determine trash file
+        let file_path = self.files_dir.join(identifier);
+        if !file_path.exists() {
+            bail!("file {file_path} not found");
+        }
+        // Move trash file to original path
+        rename(&file_path, original_path)
+            .with_context(|| format!("cannot move file {file_path} to {original_path}"))?;
+        // Remove trashinfo file
+        remove_file(&trashinfo_path)
+            .with_context(|| format!("cannot remove trashinfo file {trashinfo_path}"))?;
+        // TODO: If file is a directory, remove it from dir sizes
+        let report = TrashRestoreReport {
+            path: original_path.to_owned(),
+            deletion_time: deletion_time.to_owned(),
+        };
+        Ok(report)
+    }
+
     fn dir_sizes(&self) -> &DirSizes {
         self.dir_sizes.get_or_init(|| {
             self.load_dir_sizes()
@@ -300,9 +337,15 @@ pub(crate) struct TrashPutReport {
     pub(crate) deletion_time: NaiveDateTime,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct TrashRestoreReport {
+    pub(crate) path: Utf8PathBuf,
+    pub(crate) deletion_time: NaiveDateTime,
+}
+
 #[cfg(test)]
 mod tests {
-    use assert_fs::{NamedTempFile, TempDir, prelude::FileWriteStr};
+    use assert_fs::{prelude::FileWriteStr, NamedTempFile, TempDir};
 
     use super::*;
 
