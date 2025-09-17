@@ -17,18 +17,18 @@
 use std::{
     cmp::Ordering,
     fmt::Display,
-    io::{IsTerminal, stdout},
+    io::{stdout, IsTerminal},
 };
 
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use camino::Utf8Path;
 use chrono::NaiveDateTime;
 use clap::Parser;
-use humansize::{DECIMAL, FormatSizeOptions, make_format};
+use humansize::{make_format, FormatSizeOptions, DECIMAL};
 use shell_quote::Sh;
 use tabled::{
-    Table, Tabled,
-    settings::{Alignment, Style, object::Columns},
+    settings::{object::Columns, Alignment, Style}, Table,
+    Tabled,
 };
 
 use crate::{
@@ -52,36 +52,31 @@ impl App {
     }
 
     fn list(&self, args: &ListArgs) -> Result<()> {
-        // NOTE: This doesn't behave exactly as the quoting in `ls` but it's safe enough
-        fn quoted(path: impl AsRef<Utf8Path>, quote: bool) -> String {
+        fn not_quoted(path: impl AsRef<Utf8Path>) -> String {
             let path = path.as_ref();
-            if quote {
-                str::from_utf8(&Sh::quote_vec(path.as_str()))
-                    .unwrap()
-                    .to_string()
-            } else {
-                path.to_string()
-            }
+            path.to_string()
+        }
+
+        // NOTE: This doesn't behave exactly as the quoting in `ls` but it's safe enough
+        fn quoted(path: impl AsRef<Utf8Path>) -> String {
+            let path = path.as_ref();
+            str::from_utf8(&Sh::quote_vec(path.as_str()))
+                .unwrap()
+                .to_string()
         }
 
         let trash = Trash::default();
-        let mut entries = trash
-            .entries()?
-            // NOTE: Errors are discarded
-            .filter_map(|entry| entry.ok())
-            .collect::<Vec<_>>();
-        // Sort entries
-        let compare: fn(&TrashEntry, &TrashEntry) -> Ordering = match &args.sort_order {
-            SortOrder::Path => |entry1, entry2| entry1.original_path().cmp(entry2.original_path()),
-            SortOrder::Date => |entry1, entry2| entry2.deletion_time().cmp(entry1.deletion_time()),
-        };
-        entries.sort_by(compare);
+        let entries = trash.entries()?;
+        // Discard entries in error
+        let mut entries = entries.filter_map(|entry| entry.ok()).collect::<Vec<_>>();
+        // Sort entries according to sort order
+        entries.sort_by(comparator(&args.sort_order));
         // Print entries
-        // NOTE: Quote paths only if stdout is a terminal
-        let is_terminal = stdout().is_terminal();
+        let should_quote = stdout().is_terminal();
+        let maybe_quoted = if should_quote { quoted } else { not_quoted };
         if !args.verbose {
-            for entry in entries {
-                println!("{}", quoted(entry.original_path(), is_terminal))
+            for entry in &entries {
+                println!("{}", maybe_quoted(entry.original_path()))
             }
         } else {
             // NOTE: We use the DECIMAL format but remove the space after the value to mimic the behavior of `ls -lh`
@@ -94,7 +89,7 @@ impl App {
                     format!("{}", entry.size())
                 },
                 deletion_time: format_datetime(entry.deletion_time()).to_string(),
-                path: quoted(entry.original_path(), is_terminal),
+                path: maybe_quoted(entry.original_path()),
             }));
             table
                 .with(Style::empty())
@@ -116,29 +111,35 @@ impl App {
         let should_prompt = *interactive && stdout().is_terminal();
         let mut trashed = 0_usize;
         let mut errors = 0_usize;
+        // Discard invalid UTF-8 paths
+        let paths = paths
+            .iter()
+            .filter_map(|path| {
+                Utf8Path::from_path(path).or_else(|| {
+                    eprintln!("invalid UTF-8 path: {}", path.display());
+                    errors += 1;
+                    None
+                })
+            })
+            .collect::<Vec<_>>();
         for path in paths {
-            if let Some(path) = Utf8Path::from_path(path) {
-                if !should_prompt || prompt(format!("trash {path}?"))? {
-                    match trash.put(path) {
-                        Result::Ok(report) => {
-                            if *verbose {
-                                println!(
-                                    "trashed {} on {}",
-                                    report.path,
-                                    format_datetime(&report.deletion_time)
-                                );
-                            }
-                            trashed += 1;
+            if !should_prompt || prompt(format!("trash {path}?"))? {
+                match trash.put(path) {
+                    Result::Ok(report) => {
+                        if *verbose {
+                            println!(
+                                "trashed {} on {}",
+                                report.path,
+                                format_datetime(&report.deletion_time)
+                            );
                         }
-                        Result::Err(err) => {
-                            eprintln!("cannot trash {path}: {err:#}");
-                            errors += 1;
-                        }
+                        trashed += 1;
+                    }
+                    Result::Err(err) => {
+                        eprintln!("cannot trash {path}: {err:#}");
+                        errors += 1;
                     }
                 }
-            } else {
-                eprintln!("invalid UTF-8 path: {}", path.display());
-                errors += 1;
             }
         }
         if *verbose {
@@ -148,6 +149,13 @@ impl App {
             bail!("{errors} not trashed");
         }
         Ok(())
+    }
+}
+
+fn comparator(sort_order: &SortOrder) -> fn(&TrashEntry, &TrashEntry) -> Ordering {
+    match sort_order {
+        SortOrder::Path => |entry1, entry2| entry1.original_path().cmp(entry2.original_path()),
+        SortOrder::Date => |entry1, entry2| entry2.deletion_time().cmp(entry1.deletion_time()),
     }
 }
 
