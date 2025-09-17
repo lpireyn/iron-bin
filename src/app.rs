@@ -126,7 +126,7 @@ impl App {
         for path in paths {
             if !should_prompt || prompt(format!("trash {path}?"))? {
                 match trash.put(path) {
-                    Result::Ok(report) => {
+                    Ok(report) => {
                         if *verbose {
                             println!(
                                 "trashed {} on {}",
@@ -136,7 +136,7 @@ impl App {
                         }
                         trashed += 1;
                     }
-                    Result::Err(err) => {
+                    Err(err) => {
                         eprintln!("cannot trash {path}: {err:#}");
                         errors += 1;
                     }
@@ -221,7 +221,7 @@ impl App {
                 ))?
             {
                 match trash.restore(identifier) {
-                    Result::Ok(report) => {
+                    Ok(report) => {
                         if *verbose {
                             println!(
                                 "restored {} trashed on {}",
@@ -230,7 +230,7 @@ impl App {
                         }
                         restored += 1;
                     }
-                    Result::Err(err) => {
+                    Err(err) => {
                         eprintln!("cannot restore {}: {err:#}", entry.original_path());
                         errors += 1;
                     }

@@ -216,9 +216,9 @@ impl Trash {
                 .open(trashinfo_path)
             {
                 // The trashinfo file could be created
-                Result::Ok(file) => break Ok((identifier, file)),
+                Ok(file) => break Ok((identifier, file)),
                 // The trashinfo file could not be created
-                Result::Err(err) => match err.kind() {
+                Err(err) => match err.kind() {
                     // A trashinfo file already exists for the identifier
                     ErrorKind::AlreadyExists => {
                         // TODO: Handle overflow
