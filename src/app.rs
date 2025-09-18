@@ -17,20 +17,22 @@
 use std::{
     cmp::Ordering,
     fmt::Display,
-    io::{stdout, IsTerminal},
+    io::{IsTerminal, stdout},
 };
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use camino::Utf8Path;
 use chrono::NaiveDateTime;
 use clap::Parser;
-use humansize::{make_format, FormatSizeOptions, DECIMAL};
+use humansize::{DECIMAL, FormatSizeOptions, make_format};
 use shell_quote::Sh;
 use tabled::{
-    settings::{object::Columns, Alignment, Style}, Table,
-    Tabled,
+    Table, Tabled,
+    settings::{Alignment, Style, object::Columns},
 };
 
+use crate::cli::EmptyArgs;
+use crate::trash::TrashEmptyReport;
 use crate::{
     cli::{Cli, Command, ListArgs, PutArgs, RestoreArgs, SortOrder},
     prompt::prompt,
@@ -49,6 +51,7 @@ impl App {
             Command::List(args) => app.list(args),
             Command::Put(args) => app.put(args),
             Command::Restore(args) => app.restore(args),
+            Command::Empty(args) => app.empty(args),
         }
     }
 
@@ -242,6 +245,19 @@ impl App {
         }
         if errors > 0 {
             bail!("{errors} not restored");
+        }
+        Ok(())
+    }
+
+    fn empty(&self, args: &EmptyArgs) -> Result<()> {
+        let trash = Trash::default();
+        let EmptyArgs { force, verbose } = args;
+        let should_prompt = !*force && stdout().is_terminal();
+        if !should_prompt || prompt("empty trash?")? {
+            let TrashEmptyReport { entry_count, size } = trash.empty()?;
+            if *verbose {
+                println!("total {entry_count} removed");
+            }
         }
         Ok(())
     }

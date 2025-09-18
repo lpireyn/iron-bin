@@ -17,15 +17,15 @@
 mod dir_sizes;
 mod info;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use camino::{Utf8Path, Utf8PathBuf};
 use chrono::{Local, NaiveDateTime};
 use dir_sizes::DirSizes;
 use info::TrashInfo;
-use std::fs::remove_file;
+use std::fs::{remove_dir_all, remove_file};
 use std::{
     cell::OnceCell,
-    fs::{create_dir_all, rename, File, OpenOptions},
+    fs::{File, OpenOptions, create_dir_all, rename},
     io::{BufReader, BufWriter, ErrorKind},
     os::unix::fs::MetadataExt,
 };
@@ -41,6 +41,7 @@ pub(crate) struct Trash {
     base_dir: Utf8PathBuf,
     info_dir: Utf8PathBuf,
     files_dir: Utf8PathBuf,
+    directorysizes_file: Utf8PathBuf,
     dir_sizes: OnceCell<DirSizes>,
 }
 
@@ -69,10 +70,12 @@ impl Trash {
         let base_dir = base_dir.into();
         let info_dir = base_dir.join("info");
         let files_dir = base_dir.join("files");
+        let directorysizes_file = base_dir.join("directorysizes");
         Self {
             base_dir,
             info_dir,
             files_dir,
+            directorysizes_file,
             dir_sizes: OnceCell::new(),
         }
     }
@@ -90,6 +93,11 @@ impl Trash {
     /// Return the files directory of this trash.
     fn files_dir(&self) -> &Utf8Path {
         &self.files_dir
+    }
+
+    /// Return the directorysizes file of this trash.
+    fn directorysizes_file(&self) -> &Utf8Path {
+        &self.directorysizes_file
     }
 
     /// Return an iterator on the entries of this trash.
@@ -272,6 +280,32 @@ impl Trash {
         Ok(report)
     }
 
+    pub(crate) fn empty(&self) -> Result<TrashEmptyReport> {
+        let mut entry_count = 0_usize;
+        // Remove trashinfo files
+        for trashinfo_path in self.trashinfo_paths()? {
+            remove_file(&trashinfo_path)
+                .with_context(|| format!("cannot remove trashinfo file {trashinfo_path}"))?;
+        }
+        // Remove trash files
+        for dir_entry in self.files_dir.read_dir_utf8()? {
+            let dir_entry = dir_entry.context("cannot read contents of trash files directory")?;
+            let file_path = dir_entry.path();
+            remove_dir_all(file_path).with_context(|| format!("cannot remove file {file_path}"))?;
+            entry_count += 1;
+        }
+        // Remove dir sizes file
+        let directorysizes_file = self.directorysizes_file();
+        remove_file(directorysizes_file)
+            .with_context(|| format!("cannot remove directorysizes file {directorysizes_file}"))?;
+        let report = TrashEmptyReport {
+            entry_count,
+            // TODO: Compute size
+            size: 0,
+        };
+        Ok(report)
+    }
+
     fn dir_sizes(&self) -> &DirSizes {
         self.dir_sizes.get_or_init(|| {
             self.load_dir_sizes()
@@ -281,7 +315,7 @@ impl Trash {
     }
 
     fn load_dir_sizes(&self) -> Result<DirSizes> {
-        let path = self.base_dir.join("directorysizes");
+        let path = self.directorysizes_file();
         let mut file = File::open(path)?;
         dir_sizes::read_from(&mut file)
     }
@@ -343,9 +377,15 @@ pub(crate) struct TrashRestoreReport {
     pub(crate) deletion_time: NaiveDateTime,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct TrashEmptyReport {
+    pub(crate) entry_count: usize,
+    pub(crate) size: u64,
+}
+
 #[cfg(test)]
 mod tests {
-    use assert_fs::{prelude::FileWriteStr, NamedTempFile, TempDir};
+    use assert_fs::{NamedTempFile, TempDir, prelude::FileWriteStr};
 
     use super::*;
 

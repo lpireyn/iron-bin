@@ -41,6 +41,10 @@ pub(crate) enum Command {
     /// Restore files from the trash.
     #[command()]
     Restore(RestoreArgs),
+
+    /// Empty the trash.
+    #[command()]
+    Empty(EmptyArgs),
 }
 
 /// Arguments to the `list` command.
@@ -113,4 +117,16 @@ pub(crate) struct RestoreArgs {
     /// Should be quoted to avoid shell expansion.
     #[arg(value_name = "PATH")]
     pub(crate) paths: Vec<PathBuf>,
+}
+
+/// Arguments to the `empty` command.
+#[derive(Args, Clone, Debug, PartialEq)]
+pub(crate) struct EmptyArgs {
+    /// Do not prompt before emptying the trash.
+    #[arg(long, short = 'f')]
+    pub(crate) force: bool,
+
+    /// Verbose output.
+    #[arg(long, short = 'v')]
+    pub(crate) verbose: bool,
 }
