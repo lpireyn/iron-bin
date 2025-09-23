@@ -14,16 +14,17 @@
 
 //! Prompt.
 
+use std::io;
+
 use anyhow::{Context, Result};
-use dialoguer::Confirm;
 
 /// Prompt the user for a y/n answer to a question.
 pub(crate) fn prompt(question: impl AsRef<str>) -> Result<bool> {
     let question = question.as_ref();
-    Confirm::new()
-        .with_prompt(question)
-        .wait_for_newline(true)
-        .report(false)
-        .interact()
-        .context("cannot prompt")
+    eprint!("{question} [y/n] ");
+    let mut answer = String::with_capacity(10);
+    io::stdin()
+        .read_line(&mut answer)
+        .context("cannot prompt")?;
+    Ok(answer.starts_with('y'))
 }
