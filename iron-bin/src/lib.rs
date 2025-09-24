@@ -23,12 +23,11 @@ use anyhow::{Context, Result, bail};
 use camino::{Utf8Path, Utf8PathBuf};
 use camino_ext::Utf8PathExt;
 use chrono::{Local, NaiveDateTime};
-use xdg::BaseDirectories;
 
 use self::dir_sizes::DirSizes;
 use self::info::TrashInfo;
 
-const TRASHINFO_EXTENSION: &str = "trashinfo";
+const EXT_TRASHINFO: &str = "trashinfo";
 
 /// Trash.
 #[derive(Clone, Debug, PartialEq)]
@@ -53,7 +52,7 @@ impl Trash {
     /// or if the XDG data home contains invalid UTF-8 characters.
     pub fn default_base_dir() -> Utf8PathBuf {
         Utf8PathBuf::from_path_buf(
-            BaseDirectories::default()
+            xdg::BaseDirectories::default()
                 .get_data_home()
                 .expect("undefined environment variable: HOME"),
         )
@@ -99,7 +98,7 @@ impl Trash {
             path.is_file()
                 && path
                     .extension()
-                    .is_some_and(|extension| extension == TRASHINFO_EXTENSION)
+                    .is_some_and(|extension| extension == EXT_TRASHINFO)
         }
 
         let trashinfo_paths = self
@@ -125,8 +124,7 @@ impl Trash {
             .file_name()
             .expect("trashinfo path has no file name");
         // NOTE: Utf8Path has no `base_name` method, so we strip the extension ourselves
-        let identifier =
-            String::from(&file_name[..file_name.len() - (1 + TRASHINFO_EXTENSION.len())]);
+        let identifier = String::from(&file_name[..file_name.len() - (1 + EXT_TRASHINFO.len())]);
         // Read trashinfo file
         let trashinfo_file = fs::File::open(trashinfo_path)?;
         let TrashInfo {
@@ -205,9 +203,7 @@ impl Trash {
             } else {
                 format!("{base_identifier}_{number}")
             };
-            let trashinfo_path = self
-                .info_dir
-                .join(format!("{identifier}.{TRASHINFO_EXTENSION}"));
+            let trashinfo_path = self.info_dir.join(format!("{identifier}.{EXT_TRASHINFO}"));
             match fs::OpenOptions::new()
                 .create_new(true)
                 .write(true)
@@ -236,9 +232,7 @@ impl Trash {
     pub fn restore(&self, identifier: impl AsRef<str>) -> Result<TrashRestoreReport> {
         let identifier = identifier.as_ref();
         // Read trashinfo
-        let trashinfo_path = self
-            .info_dir
-            .join(format!("{identifier}.{TRASHINFO_EXTENSION}"));
+        let trashinfo_path = self.info_dir.join(format!("{identifier}.{EXT_TRASHINFO}"));
         let TrashInfo {
             path: original_path,
             deletion_time,
