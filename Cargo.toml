@@ -22,3 +22,10 @@ chrono = { version = "0.4.42", default-features = false, features = ["std"] }
 clap = { version = "4.5.48", default-features = false, features = ["std", "cargo", "derive", "error-context", "help", "usage"] }
 iron-bin = { path = "iron-bin" }
 trash = { path = "trash" }
+
+# https://github.com/johnthagen/min-sized-rust
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"
