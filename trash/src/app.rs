@@ -253,8 +253,12 @@ impl App {
         let EmptyArgs { force, verbose } = args;
         let should_prompt = !*force && stdout().is_terminal();
         if !should_prompt || prompt("empty trash?")? {
-            let TrashEmptyReport { entry_count, size } = trash.empty()?;
+            let TrashEmptyReport {
+                entry_count,
+                size: _,
+            } = trash.empty()?;
             if *verbose {
+                // TODO: Print the size
                 println!("total {entry_count} removed");
             }
         }

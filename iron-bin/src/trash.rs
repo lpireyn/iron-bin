@@ -84,21 +84,6 @@ impl Trash {
         &self.base_dir
     }
 
-    /// Return the info directory of this trash.
-    fn info_dir(&self) -> &Utf8Path {
-        &self.info_dir
-    }
-
-    /// Return the files directory of this trash.
-    fn files_dir(&self) -> &Utf8Path {
-        &self.files_dir
-    }
-
-    /// Return the directorysizes file of this trash.
-    fn directorysizes_file(&self) -> &Utf8Path {
-        &self.directorysizes_file
-    }
-
     /// Return an iterator on the entries of this trash.
     pub fn entries(&self) -> Result<impl Iterator<Item = Result<TrashEntry>>> {
         let entries = self.trashinfo_paths()?.map(|path| self.new_entry(&path));
@@ -121,7 +106,7 @@ impl Trash {
         }
 
         let trashinfo_paths = self
-            .info_dir()
+            .info_dir
             .read_dir_utf8_or_empty()?
             .filter_map(|dir_entry| {
                 // NOTE: If dir_entry cannot be obtained, it is skipped
@@ -161,9 +146,9 @@ impl Trash {
             })?;
             let trashinfo_mtime = trashinfo_metadata.mtime() as u64;
             if let Some(dir_size) = self.dir_sizes().get(&identifier)
-                && dir_size.mtime() == trashinfo_mtime
+                && dir_size.mtime == trashinfo_mtime
             {
-                dir_size.size()
+                dir_size.size
             } else {
                 // NOTE: We don't compute the actual directory size here
                 0
@@ -297,7 +282,7 @@ impl Trash {
             entry_count += 1;
         }
         // Remove dir sizes file
-        let directorysizes_file = self.directorysizes_file();
+        let directorysizes_file = &self.directorysizes_file;
         remove_file(directorysizes_file)
             .with_context(|| format!("cannot remove directorysizes file {directorysizes_file}"))?;
         let report = TrashEmptyReport {
@@ -317,8 +302,7 @@ impl Trash {
     }
 
     fn load_dir_sizes(&self) -> Result<DirSizes> {
-        let path = self.directorysizes_file();
-        let mut file = File::open(path)?;
+        let mut file = File::open(&self.directorysizes_file)?;
         dir_sizes::read_from(&mut file)
     }
 }

@@ -14,9 +14,6 @@
 
 //! Extensions for Camino.
 
-// TODO: Remove these before first release
-#![allow(dead_code, unused_variables)]
-
 use std::io;
 
 use camino::{ReadDirUtf8, Utf8Path};

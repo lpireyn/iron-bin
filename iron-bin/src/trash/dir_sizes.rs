@@ -26,24 +26,12 @@ use anyhow::{Context, Result, anyhow};
 /// Represents a record in the `directorysizes` file of a trash.
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct DirSize {
-    name: String,
-    size: u64,
-    mtime: u64,
+    pub(super) name: String,
+    pub(super) size: u64,
+    pub(super) mtime: u64,
 }
 
 impl DirSize {
-    pub(super) fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub(super) fn size(&self) -> u64 {
-        self.size
-    }
-
-    pub(super) fn mtime(&self) -> u64 {
-        self.mtime
-    }
-
     fn read_from_line(line: impl AsRef<str>) -> Result<DirSize> {
         /// Return the given timestamp corrected.
         ///

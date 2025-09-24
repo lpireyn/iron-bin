@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO: Remove these before first release
-#![allow(dead_code, unused_variables)]
-
 pub mod app;
 
 pub(crate) mod cli;
