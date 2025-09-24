@@ -36,11 +36,19 @@ impl Iterator for OptionalReadDirUtf8 {
     }
 }
 
-pub fn read_dir_utf8_or_empty(path: impl AsRef<Utf8Path>) -> io::Result<OptionalReadDirUtf8> {
-    let path = path.as_ref();
-    Ok(OptionalReadDirUtf8(if path.exists() {
-        Some(path.read_dir_utf8()?)
-    } else {
-        None
-    }))
+/// Extensions for [Utf8Path].
+pub trait Utf8PathExt {
+    /// Return an iterator over the entries in a directory,
+    /// or an empty iterator if the directory does not exist.
+    fn read_dir_utf8_or_empty(&self) -> io::Result<OptionalReadDirUtf8>;
+}
+
+impl Utf8PathExt for Utf8Path {
+    fn read_dir_utf8_or_empty(&self) -> io::Result<OptionalReadDirUtf8> {
+        Ok(OptionalReadDirUtf8(if self.exists() {
+            Some(self.read_dir_utf8()?)
+        } else {
+            None
+        }))
+    }
 }

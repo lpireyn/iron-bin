@@ -26,7 +26,7 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 use camino::{Utf8Path, Utf8PathBuf};
-use camino_ext::read_dir_utf8_or_empty;
+use camino_ext::Utf8PathExt;
 use chrono::{Local, NaiveDateTime};
 use dir_sizes::DirSizes;
 use info::TrashInfo;
@@ -120,16 +120,19 @@ impl Trash {
                     .is_some_and(|extension| extension == TRASHINFO_EXTENSION)
         }
 
-        let trashinfo_paths = read_dir_utf8_or_empty(self.info_dir())?.filter_map(|dir_entry| {
-            // NOTE: If dir_entry cannot be obtained, it is skipped
-            let dir_entry = dir_entry.ok()?;
-            let path = dir_entry.into_path();
-            if is_trashinfo_file(&path) {
-                Some(path)
-            } else {
-                None
-            }
-        });
+        let trashinfo_paths = self
+            .info_dir()
+            .read_dir_utf8_or_empty()?
+            .filter_map(|dir_entry| {
+                // NOTE: If dir_entry cannot be obtained, it is skipped
+                let dir_entry = dir_entry.ok()?;
+                let path = dir_entry.into_path();
+                if is_trashinfo_file(&path) {
+                    Some(path)
+                } else {
+                    None
+                }
+            });
         Ok(trashinfo_paths)
     }
 
