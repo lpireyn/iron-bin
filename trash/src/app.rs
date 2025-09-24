@@ -17,7 +17,7 @@
 use std::{
     cmp::Ordering,
     fmt::Display,
-    io::{IsTerminal, stdout},
+    io::{self, IsTerminal, stdout},
 };
 
 use anyhow::{Context, Result, bail};
@@ -32,11 +32,7 @@ use tabled::{
     settings::{Alignment, Style, object::Columns},
 };
 
-use crate::cli::EmptyArgs;
-use crate::{
-    cli::{Cli, Command, ListArgs, PutArgs, RestoreArgs, SortOrder},
-    prompt::prompt,
-};
+use crate::cli::{Cli, Command, EmptyArgs, ListArgs, PutArgs, RestoreArgs, SortOrder};
 
 /// Application.
 #[derive(Clone, Debug)]
@@ -275,6 +271,17 @@ fn comparator(sort_order: &SortOrder) -> fn(&TrashEntry, &TrashEntry) -> Orderin
 
 fn format_datetime(datetime: &NaiveDateTime) -> impl Display {
     datetime.format("%c")
+}
+
+/// Prompt the user for a y/n answer to a question.
+fn prompt(question: impl AsRef<str>) -> Result<bool> {
+    let question = question.as_ref();
+    eprint!("{question} [y/n] ");
+    let mut answer = String::with_capacity(10);
+    io::stdin()
+        .read_line(&mut answer)
+        .context("cannot prompt")?;
+    Ok(answer.starts_with('y'))
 }
 
 /// Table record for a trash entry.

@@ -15,4 +15,3 @@
 pub mod app;
 
 pub(crate) mod cli;
-pub(crate) mod prompt;
