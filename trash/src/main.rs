@@ -12,12 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO: Remove these before first release
-#![allow(dead_code, unused_variables)]
+use std::process::ExitCode;
 
-pub mod app;
+use trash::app::App;
 
-pub(crate) mod camino_ext;
-pub(crate) mod cli;
-pub(crate) mod prompt;
-pub(crate) mod trash;
+/// Entry point of the `trash` command.
+///
+/// # Error handling
+///
+/// This function does not return a `Result` as we don't want the default error handling,
+/// i.e. printing something like `"Error: {:?}"`.
+fn main() -> ExitCode {
+    if let Err(err) = App::run() {
+        eprintln!("error: {err:#}");
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    }
+}

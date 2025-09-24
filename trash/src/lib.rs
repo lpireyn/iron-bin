@@ -12,21 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::process::ExitCode;
+// TODO: Remove these before first release
+#![allow(dead_code, unused_variables)]
 
-use iron_bin::app::App;
+pub mod app;
 
-/// Entry point of the `trash` command.
-///
-/// # Error handling
-///
-/// This function does not return a `Result` as we don't want the default error handling,
-/// i.e. printing something like `"Error: {:?}"`.
-fn main() -> ExitCode {
-    if let Err(err) = App::run() {
-        eprintln!("error: {err:#}");
-        ExitCode::FAILURE
-    } else {
-        ExitCode::SUCCESS
-    }
-}
+pub(crate) mod cli;
+pub(crate) mod prompt;

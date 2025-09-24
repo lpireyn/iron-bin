@@ -25,6 +25,7 @@ use camino::Utf8Path;
 use chrono::NaiveDateTime;
 use clap::Parser;
 use humansize::{DECIMAL, FormatSizeOptions, make_format};
+use iron_bin::trash::{Trash, TrashEmptyReport, TrashEntry};
 use shell_quote::Sh;
 use tabled::{
     Table, Tabled,
@@ -32,11 +33,9 @@ use tabled::{
 };
 
 use crate::cli::EmptyArgs;
-use crate::trash::TrashEmptyReport;
 use crate::{
     cli::{Cli, Command, ListArgs, PutArgs, RestoreArgs, SortOrder},
     prompt::prompt,
-    trash::{Trash, TrashEntry},
 };
 
 /// Application.

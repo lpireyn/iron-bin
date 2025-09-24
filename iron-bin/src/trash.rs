@@ -17,18 +17,18 @@
 mod dir_sizes;
 mod info;
 
+use std::{
+    cell::OnceCell,
+    fs::{File, OpenOptions, create_dir_all, remove_dir_all, remove_file, rename},
+    io::{BufReader, BufWriter, ErrorKind},
+    os::unix::fs::MetadataExt,
+};
+
 use anyhow::{Context, Result, bail};
 use camino::{Utf8Path, Utf8PathBuf};
 use chrono::{Local, NaiveDateTime};
 use dir_sizes::DirSizes;
 use info::TrashInfo;
-use std::fs::{remove_dir_all, remove_file};
-use std::{
-    cell::OnceCell,
-    fs::{File, OpenOptions, create_dir_all, rename},
-    io::{BufReader, BufWriter, ErrorKind},
-    os::unix::fs::MetadataExt,
-};
 use xdg::BaseDirectories;
 
 use crate::camino_ext::read_dir_utf8_or_empty;
@@ -37,7 +37,7 @@ const TRASHINFO_EXTENSION: &str = "trashinfo";
 
 /// Trash.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct Trash {
+pub struct Trash {
     base_dir: Utf8PathBuf,
     info_dir: Utf8PathBuf,
     files_dir: Utf8PathBuf,
@@ -55,7 +55,7 @@ impl Trash {
     /// # Panics
     ///
     /// This function panics if the `HOME` environment variable is not defined or if the XDG data home contains invalid UTF-8 characters.
-    pub(crate) fn default_base_dir() -> Utf8PathBuf {
+    pub fn default_base_dir() -> Utf8PathBuf {
         Utf8PathBuf::from_path_buf(
             BaseDirectories::default()
                 .get_data_home()
@@ -66,7 +66,7 @@ impl Trash {
     }
 
     /// Create a trash at the given base directory.
-    pub(crate) fn new(base_dir: impl Into<Utf8PathBuf>) -> Self {
+    pub fn new(base_dir: impl Into<Utf8PathBuf>) -> Self {
         let base_dir = base_dir.into();
         let info_dir = base_dir.join("info");
         let files_dir = base_dir.join("files");
@@ -81,7 +81,7 @@ impl Trash {
     }
 
     /// Return the base directory of this trash.
-    pub(crate) fn base_dir(&self) -> &Utf8Path {
+    pub fn base_dir(&self) -> &Utf8Path {
         &self.base_dir
     }
 
@@ -101,7 +101,7 @@ impl Trash {
     }
 
     /// Return an iterator on the entries of this trash.
-    pub(crate) fn entries(&self) -> Result<impl Iterator<Item = Result<TrashEntry>>> {
+    pub fn entries(&self) -> Result<impl Iterator<Item = Result<TrashEntry>>> {
         let entries = self.trashinfo_paths()?.map(|path| self.new_entry(&path));
         Ok(entries)
     }
@@ -188,7 +188,7 @@ impl Trash {
         Ok(())
     }
 
-    pub(crate) fn put(&self, path: impl AsRef<Utf8Path>) -> Result<TrashPutReport> {
+    pub fn put(&self, path: impl AsRef<Utf8Path>) -> Result<TrashPutReport> {
         let path = path.as_ref().canonicalize_utf8()?;
         let deletion_time = Local::now().naive_local();
         let trashinfo = TrashInfo::new(&path, deletion_time);
@@ -243,7 +243,7 @@ impl Trash {
         }
     }
 
-    pub(crate) fn restore(&self, identifier: impl AsRef<str>) -> Result<TrashRestoreReport> {
+    pub fn restore(&self, identifier: impl AsRef<str>) -> Result<TrashRestoreReport> {
         let identifier = identifier.as_ref();
         // Read trashinfo
         let trashinfo_path = self
@@ -280,7 +280,7 @@ impl Trash {
         Ok(report)
     }
 
-    pub(crate) fn empty(&self) -> Result<TrashEmptyReport> {
+    pub fn empty(&self) -> Result<TrashEmptyReport> {
         let mut entry_count = 0_usize;
         // Remove trashinfo files
         for trashinfo_path in self.trashinfo_paths()? {
@@ -340,7 +340,7 @@ fn identifier(path: impl AsRef<Utf8Path>) -> String {
 
 /// Trash entry.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct TrashEntry {
+pub struct TrashEntry {
     identifier: String,
     original_path: Utf8PathBuf,
     deletion_time: NaiveDateTime,
@@ -348,39 +348,39 @@ pub(crate) struct TrashEntry {
 }
 
 impl TrashEntry {
-    pub(crate) fn identifier(&self) -> &str {
+    pub fn identifier(&self) -> &str {
         &self.identifier
     }
 
-    pub(crate) fn original_path(&self) -> &Utf8Path {
+    pub fn original_path(&self) -> &Utf8Path {
         &self.original_path
     }
 
-    pub(crate) fn deletion_time(&self) -> &NaiveDateTime {
+    pub fn deletion_time(&self) -> &NaiveDateTime {
         &self.deletion_time
     }
 
-    pub(crate) fn size(&self) -> u64 {
+    pub fn size(&self) -> u64 {
         self.size
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct TrashPutReport {
-    pub(crate) path: Utf8PathBuf,
-    pub(crate) deletion_time: NaiveDateTime,
+pub struct TrashPutReport {
+    pub path: Utf8PathBuf,
+    pub deletion_time: NaiveDateTime,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct TrashRestoreReport {
-    pub(crate) path: Utf8PathBuf,
-    pub(crate) deletion_time: NaiveDateTime,
+pub struct TrashRestoreReport {
+    pub path: Utf8PathBuf,
+    pub deletion_time: NaiveDateTime,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct TrashEmptyReport {
-    pub(crate) entry_count: usize,
-    pub(crate) size: u64,
+pub struct TrashEmptyReport {
+    pub entry_count: usize,
+    pub size: u64,
 }
 
 #[cfg(test)]
