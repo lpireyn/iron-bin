@@ -11,6 +11,6 @@ version = "0.1.0"
 edition = "2024"
 
 [workspace.dependencies]
-anyhow = "1.0.99"
-camino = "1.1.10"
-chrono = { version = "0.4.41", default-features = false, features = ["std"] }
+anyhow = "1.0.100"
+camino = "1.2.0"
+chrono = { version = "0.4.42", default-features = false, features = ["std"] }
