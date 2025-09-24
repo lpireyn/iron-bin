@@ -14,13 +14,11 @@
 
 //! Integration tests for the `trash` command.
 
+use std::{ffi::OsStr, fs, path::Path};
+
 use assert_cmd::Command;
-use assert_fs::prelude::*;
-use assert_fs::{NamedTempFile, TempDir};
+use assert_fs::{NamedTempFile, TempDir, prelude::*};
 use predicates::prelude::*;
-use std::ffi::OsStr;
-use std::fs::create_dir_all;
-use std::path::Path;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -88,7 +86,7 @@ fn test_list_absent_trash() -> Result<()> {
 fn test_list_empty_trash() -> Result<()> {
     let data_dir = temp_dir()?;
     for dir in ["info", "files"] {
-        create_dir_all(data_dir.join("Trash").join(dir))?;
+        fs::create_dir_all(data_dir.join("Trash").join(dir))?;
     }
     trash_command(data_dir.path())?
         .arg("list")

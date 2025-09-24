@@ -13,58 +13,40 @@
 // limitations under the License.
 
 //! Trash info.
+//!
+//! # Implementation
+//!
+//! The `rust-ini` crate is used to read and write the `.trashinfo` files.
 
-use std::io::{Read, Write};
+use std::io;
 
 use anyhow::{Context, Result};
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8PathBuf;
 use chrono::NaiveDateTime;
 use ini::Ini;
 
-const TRASH_INFO: &str = "Trash Info";
-const PATH: &str = "Path";
-const DELETION_DATE: &str = "DeletionDate";
+const SECTION_TRASH_INFO: &str = "Trash Info";
+const ENTRY_PATH: &str = "Path";
+const ENTRY_DELETION_DATE: &str = "DeletionDate";
 
 /// Trash info.
 ///
 /// Represents the contents of a `.trashinfo` file in the info directory of a trash.
-///
-/// # Implementation
-///
-/// The rust-ini crate is used to read and write the trash info.
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct TrashInfo {
-    path: Utf8PathBuf,
-    deletion_time: NaiveDateTime,
+    pub(super) path: Utf8PathBuf,
+    pub(super) deletion_time: NaiveDateTime,
 }
 
 impl TrashInfo {
-    pub(super) fn new(
-        path: impl Into<Utf8PathBuf>,
-        deletion_time: impl Into<NaiveDateTime>,
-    ) -> Self {
-        Self {
-            path: path.into(),
-            deletion_time: deletion_time.into(),
-        }
-    }
-
-    /// Read trash info from the given reader.
-    pub(super) fn read_from(reader: &mut impl Read) -> Result<Self> {
+    /// Read a trash info from the given reader.
+    pub(super) fn read_from(reader: &mut impl io::Read) -> Result<Self> {
         let ini = Ini::read_from(reader)?;
         TrashInfo::try_from(&ini)
     }
 
-    pub(super) fn path(&self) -> &Utf8Path {
-        &self.path
-    }
-
-    pub(super) fn deletion_time(&self) -> &NaiveDateTime {
-        &self.deletion_time
-    }
-
     /// Write this trash info to the given writer.
-    pub(super) fn write_to(&self, writer: &mut impl Write) -> Result<()> {
+    pub(super) fn write_to(&self, writer: &mut impl io::Write) -> Result<()> {
         Ini::from(self).write_to(writer)?;
         Ok(())
     }
@@ -76,28 +58,29 @@ impl TryFrom<&Ini> for TrashInfo {
     fn try_from(ini: &Ini) -> std::result::Result<Self, Self::Error> {
         // Section: Trash Info
         let section = ini
-            .section(Some(TRASH_INFO))
-            .with_context(|| format!("missing section: {TRASH_INFO}"))?;
+            .section(Some(SECTION_TRASH_INFO))
+            .with_context(|| format!("missing section: {SECTION_TRASH_INFO}"))?;
         // NOTE
         // The spec says:
         // > If a string that starts with “Path=” or “DeletionDate=” occurs several times, the first occurrence is to be used.
         // TODO: Check if this behavior can be implemented with `Ini`
         // Entry: Path
         let path_entry = section
-            .get(PATH)
-            .with_context(|| format!("missing entry: {PATH}"))?;
+            .get(ENTRY_PATH)
+            .with_context(|| format!("missing entry: {ENTRY_PATH}"))?;
         let path_entry = urlencoding::decode(path_entry)
             .with_context(|| format!("invalid path: {path_entry}"))?;
+        let path_entry = path_entry.as_ref();
         // Entry: Deletion date
         let deletion_date_entry = section
-            .get(DELETION_DATE)
-            .with_context(|| format!("missing entry: {DELETION_DATE}"))?;
+            .get(ENTRY_DELETION_DATE)
+            .with_context(|| format!("missing entry: {ENTRY_DELETION_DATE}"))?;
         let deletion_date = deletion_date_entry
             .parse::<NaiveDateTime>()
             .with_context(|| format!("invalid deletion date: {deletion_date_entry}"))?;
         // Trash info
         let info = Self {
-            path: path_entry.as_ref().into(),
+            path: path_entry.into(),
             deletion_time: deletion_date,
         };
         Ok(info)
@@ -109,12 +92,12 @@ impl From<&TrashInfo> for Ini {
         let mut ini = Ini::new();
         ini
             // Section: Trash Info
-            .with_section(Some(TRASH_INFO))
+            .with_section(Some(SECTION_TRASH_INFO))
             // Entry: Path
-            .set(PATH, urlencoding::encode(info.path.as_str()))
+            .set(ENTRY_PATH, urlencoding::encode(info.path.as_str()))
             // Entry: Deletion date
             .set(
-                DELETION_DATE,
+                ENTRY_DELETION_DATE,
                 info.deletion_time.format("%Y-%m-%dT%H:%M:%S").to_string(),
             );
         ini
@@ -129,11 +112,11 @@ mod tests {
 
     #[test]
     fn test_read_from() {
-        let mut trashinfo = "[Trash Info]
+        let mut trashinfo: &[u8] = b"\
+[Trash Info]
 Path=%2Fabc%2Fdef%2Fghi.xyz
 DeletionDate=2025-02-17T13:14:15
-"
-        .as_bytes();
+        ";
         let trashinfo = TrashInfo::read_from(&mut trashinfo).unwrap();
         assert_eq!(
             trashinfo,
@@ -156,11 +139,12 @@ DeletionDate=2025-02-17T13:14:15
                 NaiveTime::from_hms_opt(13, 14, 15).unwrap(),
             ),
         };
-        let mut v = Vec::<u8>::new();
-        trashinfo.write_to(&mut v).unwrap();
+        let mut bytes = Vec::<u8>::new();
+        trashinfo.write_to(&mut bytes).unwrap();
         assert_eq!(
-            String::from_utf8(v).unwrap(),
-            "[Trash Info]
+            bytes,
+            b"\
+[Trash Info]
 Path=%2Fabc%2Fdef%2Fghi.xyz
 DeletionDate=2025-02-17T13:14:15
 "

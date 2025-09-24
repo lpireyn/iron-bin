@@ -17,12 +17,7 @@
 mod dir_sizes;
 mod info;
 
-use std::{
-    cell::OnceCell,
-    fs::{File, OpenOptions, create_dir_all, remove_dir_all, remove_file, rename},
-    io::{BufReader, BufWriter, ErrorKind},
-    os::unix::fs::MetadataExt,
-};
+use std::{cell::OnceCell, fs, io, os::unix::fs::MetadataExt};
 
 use anyhow::{Context, Result, bail};
 use camino::{Utf8Path, Utf8PathBuf};
@@ -53,7 +48,8 @@ impl Trash {
     ///
     /// # Panics
     ///
-    /// This function panics if the `HOME` environment variable is not defined or if the XDG data home contains invalid UTF-8 characters.
+    /// This function panics if the `HOME` environment variable is not defined
+    /// or if the XDG data home contains invalid UTF-8 characters.
     pub fn default_base_dir() -> Utf8PathBuf {
         Utf8PathBuf::from_path_buf(
             BaseDirectories::default()
@@ -130,9 +126,12 @@ impl Trash {
         // NOTE: Utf8Path has no `base_name` method, so we strip the extension ourselves
         let identifier =
             String::from(&file_name[..file_name.len() - (1 + TRASHINFO_EXTENSION.len())]);
-        // Load trashinfo
-        let trashinfo_file = File::open(trashinfo_path)?;
-        let trashinfo = TrashInfo::read_from(&mut BufReader::new(trashinfo_file))?;
+        // Read trashinfo file
+        let trashinfo_file = fs::File::open(trashinfo_path)?;
+        let TrashInfo {
+            path: original_path,
+            deletion_time,
+        } = TrashInfo::read_from(&mut io::BufReader::new(trashinfo_file))?;
         // Examine file
         let file_path = self.files_dir.join(&identifier);
         let file_metadata = file_path
@@ -160,8 +159,8 @@ impl Trash {
         };
         let entry = TrashEntry {
             identifier,
-            original_path: trashinfo.path().to_owned(),
-            deletion_time: trashinfo.deletion_time().to_owned(),
+            original_path,
+            deletion_time,
             size,
         };
         Ok(entry)
@@ -169,7 +168,7 @@ impl Trash {
 
     fn create_dirs(&self) -> Result<()> {
         for dir in [&self.base_dir, &self.info_dir, &self.files_dir] {
-            create_dir_all(dir)
+            fs::create_dir_all(dir)
                 .with_context(|| format!("cannot create trash directory at {dir}"))?;
         }
         Ok(())
@@ -178,12 +177,15 @@ impl Trash {
     pub fn put(&self, path: impl AsRef<Utf8Path>) -> Result<TrashPutReport> {
         let path = path.as_ref().canonicalize_utf8()?;
         let deletion_time = Local::now().naive_local();
-        let trashinfo = TrashInfo::new(&path, deletion_time);
+        let trashinfo = TrashInfo {
+            path: path.to_owned(),
+            deletion_time,
+        };
         self.create_dirs()?;
         let (identifier, trashinfo_file) = self.open_new_trashinfo_file(&path)?;
-        trashinfo.write_to(&mut BufWriter::new(trashinfo_file))?;
+        trashinfo.write_to(&mut io::BufWriter::new(trashinfo_file))?;
         let file_path = self.files_dir.join(identifier);
-        rename(&path, &file_path)?;
+        fs::rename(&path, &file_path)?;
         let report = TrashPutReport {
             path,
             deletion_time,
@@ -192,7 +194,7 @@ impl Trash {
     }
 
     /// Create and open a new `.trashinfo` file in this trash for the given path.
-    fn open_new_trashinfo_file(&self, path: impl AsRef<Utf8Path>) -> Result<(String, File)> {
+    fn open_new_trashinfo_file(&self, path: impl AsRef<Utf8Path>) -> Result<(String, fs::File)> {
         let path = path.as_ref();
         let base_identifier = identifier(path);
         let mut number = 0_u16;
@@ -205,7 +207,7 @@ impl Trash {
             let trashinfo_path = self
                 .info_dir
                 .join(format!("{identifier}.{TRASHINFO_EXTENSION}"));
-            match OpenOptions::new()
+            match fs::OpenOptions::new()
                 .create_new(true)
                 .write(true)
                 .open(trashinfo_path)
@@ -215,7 +217,7 @@ impl Trash {
                 // The trashinfo file could not be created
                 Err(err) => match err.kind() {
                     // A trashinfo file already exists for the identifier
-                    ErrorKind::AlreadyExists => {
+                    io::ErrorKind::AlreadyExists => {
                         // TODO: Handle overflow
                         number += 1;
                         continue;
@@ -236,14 +238,15 @@ impl Trash {
         let trashinfo_path = self
             .info_dir
             .join(format!("{identifier}.{TRASHINFO_EXTENSION}"));
-        let trashinfo = {
-            let mut trashinfo_file = File::open(&trashinfo_path)
+        let TrashInfo {
+            path: original_path,
+            deletion_time,
+        } = {
+            let mut trashinfo_file = fs::File::open(&trashinfo_path)
                 .with_context(|| format!("cannot open trashinfo file {trashinfo_path}"))?;
             TrashInfo::read_from(&mut trashinfo_file)
                 .with_context(|| format!("cannot read trashinfo file {trashinfo_path}"))?
         };
-        let original_path = trashinfo.path();
-        let deletion_time = trashinfo.deletion_time();
         // Check if original path is available
         if original_path.exists() {
             bail!("file {original_path} already exists");
@@ -254,15 +257,15 @@ impl Trash {
             bail!("file {file_path} not found");
         }
         // Move trash file to original path
-        rename(&file_path, original_path)
+        fs::rename(&file_path, &original_path)
             .with_context(|| format!("cannot move file {file_path} to {original_path}"))?;
         // Remove trashinfo file
-        remove_file(&trashinfo_path)
+        fs::remove_file(&trashinfo_path)
             .with_context(|| format!("cannot remove trashinfo file {trashinfo_path}"))?;
         // TODO: If file is a directory, remove it from dir sizes
         let report = TrashRestoreReport {
-            path: original_path.to_owned(),
-            deletion_time: deletion_time.to_owned(),
+            path: original_path,
+            deletion_time,
         };
         Ok(report)
     }
@@ -271,19 +274,20 @@ impl Trash {
         let mut entry_count = 0_usize;
         // Remove trashinfo files
         for trashinfo_path in self.trashinfo_paths()? {
-            remove_file(&trashinfo_path)
+            fs::remove_file(&trashinfo_path)
                 .with_context(|| format!("cannot remove trashinfo file {trashinfo_path}"))?;
         }
         // Remove trash files
         for dir_entry in self.files_dir.read_dir_utf8()? {
             let dir_entry = dir_entry.context("cannot read contents of trash files directory")?;
             let file_path = dir_entry.path();
-            remove_dir_all(file_path).with_context(|| format!("cannot remove file {file_path}"))?;
+            fs::remove_dir_all(file_path)
+                .with_context(|| format!("cannot remove file {file_path}"))?;
             entry_count += 1;
         }
         // Remove dir sizes file
         let directorysizes_file = &self.directorysizes_file;
-        remove_file(directorysizes_file)
+        fs::remove_file(directorysizes_file)
             .with_context(|| format!("cannot remove directorysizes file {directorysizes_file}"))?;
         let report = TrashEmptyReport {
             entry_count,
@@ -302,7 +306,7 @@ impl Trash {
     }
 
     fn load_dir_sizes(&self) -> Result<DirSizes> {
-        let mut file = File::open(&self.directorysizes_file)?;
+        let mut file = fs::File::open(&self.directorysizes_file)?;
         dir_sizes::read_from(&mut file)
     }
 }
