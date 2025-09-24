@@ -26,12 +26,11 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 use camino::{Utf8Path, Utf8PathBuf};
+use camino_ext::read_dir_utf8_or_empty;
 use chrono::{Local, NaiveDateTime};
 use dir_sizes::DirSizes;
 use info::TrashInfo;
 use xdg::BaseDirectories;
-
-use crate::camino_ext::read_dir_utf8_or_empty;
 
 const TRASHINFO_EXTENSION: &str = "trashinfo";
 

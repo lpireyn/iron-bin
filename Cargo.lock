@@ -111,6 +111,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd0b03af37dad7a14518b7691d81acb0f8222604ad3d1b02f6b4bed5188c0cd5"
 
 [[package]]
+name = "camino-ext"
+version = "0.1.0"
+dependencies = [
+ "camino",
+]
+
+[[package]]
 name = "cc"
 version = "1.2.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -406,6 +413,7 @@ dependencies = [
  "anyhow",
  "assert_fs",
  "camino",
+ "camino-ext",
  "chrono",
  "rust-ini",
  "urlencoding",

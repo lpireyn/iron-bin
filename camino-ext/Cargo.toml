@@ -1,0 +1,11 @@
+# Cargo manifest
+# https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[package]
+name = "camino-ext"
+description = "Extensions for Camino."
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+camino.workspace = true

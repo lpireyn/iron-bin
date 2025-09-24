@@ -14,10 +14,15 @@
 
 //! Extensions for Camino.
 
+// TODO: Remove these before first release
+#![allow(dead_code, unused_variables)]
+
+use std::io;
+
 use camino::{ReadDirUtf8, Utf8Path};
 
 /// Wrapper around an optional [ReadDirUtf8].
-pub(crate) struct OptionalReadDirUtf8(Option<ReadDirUtf8>);
+pub struct OptionalReadDirUtf8(Option<ReadDirUtf8>);
 
 impl Iterator for OptionalReadDirUtf8 {
     type Item = <ReadDirUtf8 as Iterator>::Item;
@@ -31,9 +36,7 @@ impl Iterator for OptionalReadDirUtf8 {
     }
 }
 
-pub(crate) fn read_dir_utf8_or_empty(
-    path: impl AsRef<Utf8Path>,
-) -> std::io::Result<OptionalReadDirUtf8> {
+pub fn read_dir_utf8_or_empty(path: impl AsRef<Utf8Path>) -> io::Result<OptionalReadDirUtf8> {
     let path = path.as_ref();
     Ok(OptionalReadDirUtf8(if path.exists() {
         Some(path.read_dir_utf8()?)

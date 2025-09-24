@@ -16,5 +16,3 @@
 #![allow(dead_code, unused_variables)]
 
 pub mod trash;
-
-pub(crate) mod camino_ext;
