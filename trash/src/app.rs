@@ -25,7 +25,7 @@ use camino::Utf8Path;
 use chrono::NaiveDateTime;
 use clap::Parser;
 use humansize::{DECIMAL, FormatSizeOptions, make_format};
-use iron_bin::trash::{Trash, TrashEmptyReport, TrashEntry};
+use iron_bin::{Trash, TrashEmptyReport, TrashEntry};
 use shell_quote::Sh;
 use tabled::{
     Table, Tabled,
