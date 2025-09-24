@@ -21,15 +21,15 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 /// Perform various operations on the trash.
 #[derive(Clone, Debug, Parser, PartialEq)]
 #[command(name = "trash", version)]
-pub(crate) struct Cli {
+pub struct Cli {
     /// Command.
     #[command(subcommand)]
-    pub(crate) command: Command,
+    pub command: Command,
 }
 
 /// Command.
 #[derive(Clone, Debug, PartialEq, Subcommand)]
-pub(crate) enum Command {
+pub enum Command {
     /// List the files in the trash.
     #[command(visible_alias = "ls")]
     List(ListArgs),
@@ -49,17 +49,17 @@ pub(crate) enum Command {
 
 /// Arguments to the `list` command.
 #[derive(Args, Clone, Debug, PartialEq)]
-pub(crate) struct ListArgs {
+pub struct ListArgs {
     /// Verbose output.
     #[arg(long, short = 'v')]
-    pub(crate) verbose: bool,
+    pub verbose: bool,
 
     /// Print human-readable sizes.
     ///
     /// Useful with the '-v'/'--verbose' option.
     // NOTE: The short name `-h` is more conventional, but it conflicts with the help option
     #[arg(long, short = 'H')]
-    pub(crate) human_readable: bool,
+    pub human_readable: bool,
 
     /// Sort order.
     // TODO: Use SortOrder::default() as default value
@@ -69,12 +69,12 @@ pub(crate) struct ListArgs {
         short = 's',
         value_name = "ORDER"
     )]
-    pub(crate) sort_order: SortOrder,
+    pub sort_order: SortOrder,
 }
 
 /// Sort order for the `list` command.
 #[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
-pub(crate) enum SortOrder {
+pub enum SortOrder {
     /// Path, ascending.
     #[default]
     Path,
@@ -85,30 +85,30 @@ pub(crate) enum SortOrder {
 
 /// Arguments to the `put` command.
 #[derive(Args, Clone, Debug, PartialEq)]
-pub(crate) struct PutArgs {
+pub struct PutArgs {
     /// Prompt before every path.
     #[arg(long, short = 'i')]
-    pub(crate) interactive: bool,
+    pub interactive: bool,
 
     /// Verbose output.
     #[arg(long, short = 'v')]
-    pub(crate) verbose: bool,
+    pub verbose: bool,
 
     /// Paths.
     #[arg(required = true, value_name = "PATH")]
-    pub(crate) paths: Vec<PathBuf>,
+    pub paths: Vec<PathBuf>,
 }
 
 /// Arguments to the `restore` command.
 #[derive(Args, Clone, Debug, PartialEq)]
-pub(crate) struct RestoreArgs {
+pub struct RestoreArgs {
     /// Prompt before every path.
     #[arg(long, short = 'i')]
-    pub(crate) interactive: bool,
+    pub interactive: bool,
 
     /// Verbose output.
     #[arg(long, short = 'v')]
-    pub(crate) verbose: bool,
+    pub verbose: bool,
 
     /// Paths.
     ///
@@ -116,17 +116,17 @@ pub(crate) struct RestoreArgs {
     ///
     /// Should be quoted to avoid shell expansion.
     #[arg(value_name = "PATH")]
-    pub(crate) paths: Vec<PathBuf>,
+    pub paths: Vec<PathBuf>,
 }
 
 /// Arguments to the `empty` command.
 #[derive(Args, Clone, Debug, PartialEq)]
-pub(crate) struct EmptyArgs {
+pub struct EmptyArgs {
     /// Do not prompt before emptying the trash.
     #[arg(long, short = 'f')]
-    pub(crate) force: bool,
+    pub force: bool,
 
     /// Verbose output.
     #[arg(long, short = 'v')]
-    pub(crate) verbose: bool,
+    pub verbose: bool,
 }

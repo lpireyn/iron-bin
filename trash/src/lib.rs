@@ -13,5 +13,4 @@
 // limitations under the License.
 
 pub mod app;
-
-pub(crate) mod cli;
+pub mod cli;

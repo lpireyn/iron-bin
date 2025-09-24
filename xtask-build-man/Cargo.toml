@@ -2,15 +2,12 @@
 # https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [package]
-name = "xtask"
-description = "Cargo xtask."
+name = "xtask-build-man"
+description = "Cargo xtask that builds the man pages for the trash command."
 version = "0.1.0"
 edition.workspace = true
 
-[[bin]]
-name = "xtask"
-path = "src/main.rs"
-
 [dependencies]
 clap.workspace = true
-iron-bin.workspace = true
+clap_mangen = "0.2.29"
+trash.workspace = true

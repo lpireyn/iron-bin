@@ -7,7 +7,7 @@ members = [
   "camino-ext",
   "iron-bin",
   "trash",
-  "xtask",
+  "xtask-build-man",
 ]
 resolver = "3"
 
@@ -21,3 +21,4 @@ camino = "1.2.0"
 chrono = { version = "0.4.42", default-features = false, features = ["std"] }
 clap = { version = "4.5.48", default-features = false, features = ["std", "cargo", "derive", "error-context", "help", "usage"] }
 iron-bin = { path = "iron-bin" }
+trash = { path = "trash" }
