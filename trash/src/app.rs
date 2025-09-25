@@ -38,6 +38,19 @@ use crate::cli::{Cli, Command, EmptyArgs, ListArgs, PutArgs, RestoreArgs, SortOr
 #[derive(Clone, Debug)]
 pub struct App;
 
+/// Table record for a trash entry.
+#[derive(Tabled)]
+struct Record {
+    #[tabled(rename = "size")]
+    size: String,
+
+    #[tabled(rename = "deletion time")]
+    deletion_time: String,
+
+    #[tabled(rename = "original path")]
+    path: String,
+}
+
 impl App {
     pub fn run() -> Result<()> {
         let cli = Cli::parse();
@@ -282,17 +295,4 @@ fn prompt(question: impl AsRef<str>) -> Result<bool> {
         .read_line(&mut answer)
         .context("cannot prompt")?;
     Ok(answer.to_lowercase().starts_with('y'))
-}
-
-/// Table record for a trash entry.
-#[derive(Tabled)]
-struct Record {
-    #[tabled(rename = "size")]
-    size: String,
-
-    #[tabled(rename = "deletion time")]
-    deletion_time: String,
-
-    #[tabled(rename = "original path")]
-    path: String,
 }
