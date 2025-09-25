@@ -31,6 +31,8 @@ pub(super) struct DirSize {
     pub(super) mtime: u64,
 }
 
+pub(super) type DirSizes = HashMap<String, DirSize>;
+
 impl DirSize {
     fn read_from_line(line: impl AsRef<str>) -> Result<DirSize> {
         /// Return the given timestamp corrected.
@@ -75,8 +77,6 @@ impl DirSize {
         Ok(dir_size)
     }
 }
-
-pub(super) type DirSizes = HashMap<String, DirSize>;
 
 pub(super) fn read_from(reader: &mut impl Read) -> Result<DirSizes> {
     let mut dir_sizes = DirSizes::new();

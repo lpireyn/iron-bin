@@ -39,6 +39,33 @@ pub struct Trash {
     dir_sizes: OnceCell<DirSizes>,
 }
 
+/// Trash entry.
+#[derive(Clone, Debug, PartialEq)]
+pub struct TrashEntry {
+    identifier: String,
+    original_path: Utf8PathBuf,
+    deletion_time: NaiveDateTime,
+    size: u64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct TrashPutReport {
+    pub path: Utf8PathBuf,
+    pub deletion_time: NaiveDateTime,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct TrashRestoreReport {
+    pub path: Utf8PathBuf,
+    pub deletion_time: NaiveDateTime,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct TrashEmptyReport {
+    pub entry_count: usize,
+    pub size: u64,
+}
+
 impl Trash {
     /// Return the default base directory of the home trash.
     ///
@@ -318,25 +345,6 @@ impl Default for Trash {
     }
 }
 
-/// Compute an identifier for the given path.
-///
-/// # Panics
-///
-/// This function panics if the given path has no file name.
-fn identifier(path: impl AsRef<Utf8Path>) -> String {
-    let path = path.as_ref();
-    path.file_name().expect("path has no file name").to_string()
-}
-
-/// Trash entry.
-#[derive(Clone, Debug, PartialEq)]
-pub struct TrashEntry {
-    identifier: String,
-    original_path: Utf8PathBuf,
-    deletion_time: NaiveDateTime,
-    size: u64,
-}
-
 impl TrashEntry {
     pub fn identifier(&self) -> &str {
         &self.identifier
@@ -355,22 +363,14 @@ impl TrashEntry {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct TrashPutReport {
-    pub path: Utf8PathBuf,
-    pub deletion_time: NaiveDateTime,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct TrashRestoreReport {
-    pub path: Utf8PathBuf,
-    pub deletion_time: NaiveDateTime,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct TrashEmptyReport {
-    pub entry_count: usize,
-    pub size: u64,
+/// Compute an identifier for the given path.
+///
+/// # Panics
+///
+/// This function panics if the given path has no file name.
+fn identifier(path: impl AsRef<Utf8Path>) -> String {
+    let path = path.as_ref();
+    path.file_name().expect("path has no file name").to_string()
 }
 
 #[cfg(test)]
