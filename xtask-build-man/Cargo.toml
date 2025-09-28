@@ -6,6 +6,9 @@ name = "xtask-build-man"
 description = "Cargo xtask that builds the man pages for the trash command."
 version = "0.0.0"
 edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [dependencies]
 clap.workspace = true

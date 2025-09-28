@@ -6,6 +6,12 @@ name = "trash"
 description = "CLI for the Freedesktop trash."
 version.workspace = true
 edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+default-run = "trash"
 
 [[bin]]
 name = "trash"

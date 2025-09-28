@@ -6,6 +6,10 @@ name = "iron-bin"
 description = "Freedesktop trash."
 version.workspace = true
 edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [dependencies]
 anyhow.workspace = true
