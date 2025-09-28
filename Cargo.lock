@@ -106,7 +106,7 @@ checksum = "e1de8bc0aa9e9385ceb3bf0c152e3a9b9544f6c4a912c8ae504e80c1f0368603"
 
 [[package]]
 name = "camino-ext"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "camino",
 ]
@@ -995,7 +995,7 @@ checksum = "2fb433233f2df9344722454bc7e96465c9d03bff9d77c248f9e7523fe79585b5"
 
 [[package]]
 name = "xtask-build-man"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "clap",
  "clap_mangen",
