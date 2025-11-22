@@ -276,12 +276,12 @@ fn format_datetime(datetime: &NaiveDateTime) -> impl Display {
 /// Prompt the user for a y/n answer to a question.
 fn prompt(question: impl AsRef<str>) -> Result<bool> {
     let question = question.as_ref();
-    eprint!("{question} [y/n] ");
+    eprint!("{question} [y/N] ");
     let mut answer = String::with_capacity(10);
     io::stdin()
         .read_line(&mut answer)
         .context("cannot prompt")?;
-    Ok(answer.starts_with('y'))
+    Ok(answer.to_lowercase().starts_with('y'))
 }
 
 /// Table record for a trash entry.
