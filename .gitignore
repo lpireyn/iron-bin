@@ -3,3 +3,15 @@
 
 # Cargo
 /target/
+
+# Devenv
+.devenv*
+devenv.local.nix
+.envrc
+devenv*
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml
