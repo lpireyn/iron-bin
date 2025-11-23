@@ -276,8 +276,13 @@ impl Trash {
         for dir_entry in self.files_dir.read_dir_utf8()? {
             let dir_entry = dir_entry.context("cannot read contents of trash files directory")?;
             let file_path = dir_entry.path();
-            fs::remove_dir_all(file_path)
-                .with_context(|| format!("cannot remove file {file_path}"))?;
+            if file_path.is_dir() {
+                fs::remove_dir_all(file_path)
+                    .with_context(|| format!("cannot remove directory {file_path}"))?;
+            } else {
+                fs::remove_file(file_path)
+                    .with_context(|| format!("cannot remove file {file_path}"))?;
+            }
             entry_count += 1;
         }
         // Remove dir sizes file
