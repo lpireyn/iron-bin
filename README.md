@@ -32,9 +32,5 @@ This project is a [Cargo](https://doc.rust-lang.org/cargo/) workspace where the 
 
 ### Git hooks
 
-It is recommended to use the Git hooks provided in the `.githooks` directory.
-This can be achieved with:
-
-``` shell
-git config set core.hooksPath .githooks
-```
+It is recommended to use the Git hooks provided with this project.
+This can be easily achieved with [Smee](https://github.com/lpireyn/smee).
