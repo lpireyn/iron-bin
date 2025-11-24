@@ -3,12 +3,7 @@
 # https://doc.rust-lang.org/cargo/reference/workspaces.html
 
 [workspace]
-members = [
-  "camino-ext",
-  "iron-bin",
-  "trash",
-  "xtask-build-man",
-]
+members = ["crates/*"]
 resolver = "3"
 
 [workspace.package]
@@ -23,10 +18,11 @@ categories = ["command-line-utilities", "filesystem"]
 [workspace.dependencies]
 anyhow = "1.0.100"
 camino = "1.2.0"
+camino-ext = { path = "crates/camino-ext" }
 chrono = { version = "0.4.42", default-features = false, features = ["std"] }
 clap = { version = "4.5.48", default-features = false, features = ["std", "cargo", "derive", "error-context", "help", "usage"] }
-iron-bin = { path = "iron-bin" }
-trash = { path = "trash" }
+iron-bin = { path = "crates/iron-bin" }
+trash = { path = "crates/trash" }
 
 # https://github.com/johnthagen/min-sized-rust
 [profile.release]

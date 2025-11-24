@@ -27,8 +27,8 @@ See [LICENSE](LICENSE).
 Iron Bin is written in Rust.
 This project is a [Cargo](https://doc.rust-lang.org/cargo/) workspace where the following crates are the most important:
 
-- [iron-bin](iron-bin): the library that provides the `Trash` struct
-- [trash](trash): the `trash` binary, which is essentially a CLI for the `iron-bin` library
+- [iron-bin](crates/iron-bin): the library that provides the `Trash` struct
+- [trash](crates/trash): the `trash` binary, which is essentially a CLI for the `iron-bin` library
 
 ### Git hooks
 

@@ -14,7 +14,7 @@ categories.workspace = true
 [dependencies]
 anyhow.workspace = true
 camino.workspace = true
-camino-ext = { path = "../camino-ext" }
+camino-ext.workspace = true
 chrono = { workspace = true, features = ["clock"] }
 rust-ini = "0.21.3"
 urlencoding = "2.1.3"
