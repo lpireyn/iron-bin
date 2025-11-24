@@ -567,6 +567,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "prompt"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -780,6 +787,7 @@ dependencies = [
  "humansize",
  "iron-bin",
  "predicates",
+ "prompt",
  "shell-quote",
  "tabled",
 ]

@@ -17,7 +17,7 @@
 use std::{
     cmp::Ordering,
     fmt::Display,
-    io::{self, IsTerminal, stdout},
+    io::{IsTerminal, stdout},
 };
 
 use anyhow::{Context, Result, bail};
@@ -26,6 +26,7 @@ use chrono::NaiveDateTime;
 use clap::Parser;
 use humansize::{DECIMAL, FormatSizeOptions, make_format};
 use iron_bin::{Trash, TrashEmptyReport, TrashEntry};
+use prompt::prompt;
 use shell_quote::Sh;
 use tabled::{
     Table, Tabled,
@@ -284,15 +285,4 @@ fn comparator(sort_order: &SortOrder) -> fn(&TrashEntry, &TrashEntry) -> Orderin
 
 fn format_datetime(datetime: &NaiveDateTime) -> impl Display {
     datetime.format("%c")
-}
-
-/// Prompt the user for a y/n answer to a question.
-fn prompt(question: impl AsRef<str>) -> Result<bool> {
-    let question = question.as_ref();
-    eprint!("{question} [y/N] ");
-    let mut answer = String::with_capacity(10);
-    io::stdin()
-        .read_line(&mut answer)
-        .context("cannot prompt")?;
-    Ok(answer.to_lowercase().starts_with('y'))
 }
