@@ -15,14 +15,13 @@
 use std::{fs, path::PathBuf};
 
 use clap::CommandFactory;
-use trash::cli;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 fn main() -> Result<()> {
+    let command = trash::cli::Cli::command();
     let out_dir = PathBuf::from("target/man");
     fs::create_dir_all(&out_dir)?;
-    let cli = cli::Cli::command();
-    clap_mangen::generate_to(cli, out_dir)?;
+    clap_mangen::generate_to(command, out_dir)?;
     Ok(())
 }
