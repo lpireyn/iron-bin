@@ -237,7 +237,7 @@ impl App {
                         if *verbose {
                             println!(
                                 "restored {} trashed on {}",
-                                report.path, report.deletion_time
+                                report.path, &deletion_time_disp
                             );
                         }
                         restored += 1;
