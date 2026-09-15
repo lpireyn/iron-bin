@@ -1,0 +1,59 @@
+# Cargo workspace manifest
+# Reference: https://doc.rust-lang.org/cargo/reference/workspaces.html
+
+[workspace]
+members = ["crates/*"]
+resolver = "3"
+
+# Inheritable package configuration
+# Reference: https://doc.rust-lang.org/cargo/reference/workspaces.html#the-package-table
+[workspace.package]
+version = "0.1.0"
+authors = ["Laurent Pireyn <laurent@pireyn.be>"]
+edition = "2024"
+# TODO: Determine the actual MSRV
+rust-version = "1.95.0"
+readme = true
+repository = "https://github.com/lpireyn/iron-bin"
+license = "MIT OR Apache-2.0"
+
+# Inheritable dependencies
+# Reference: https://doc.rust-lang.org/cargo/reference/workspaces.html#the-dependencies-table
+[workspace.dependencies]
+
+# Lints
+# Reference: https://doc.rust-lang.org/cargo/reference/manifest.html#the-lints-section
+
+# Clippy lints
+# Reference: https://rust-lang.github.io/rust-clippy/stable/index.html
+[workspace.lints.clippy]
+correctness = "warn"
+suspicious = "warn"
+complexity = "warn"
+perf = "warn"
+style = "warn"
+pedantic = "warn"
+cargo = "warn"
+
+# Profiles
+# Reference: https://doc.rust-lang.org/cargo/reference/profiles.html
+
+# Development profile
+# Reference: https://doc.rust-lang.org/cargo/reference/profiles.html#dev
+[profile.dev]
+
+# Release profile
+# Reference: https://doc.rust-lang.org/cargo/reference/profiles.html#release
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"
+
+# Test profile
+# Reference: https://doc.rust-lang.org/cargo/reference/profiles.html#test
+[profile.test]
+
+# Benchmark profile
+# Reference: https://doc.rust-lang.org/cargo/reference/profiles.html#bench
+[profile.bench]

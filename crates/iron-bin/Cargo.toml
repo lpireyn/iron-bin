@@ -1,0 +1,38 @@
+# Cargo package manifest
+# Reference: https://doc.rust-lang.org/cargo/reference/manifest.html
+
+# Inherit workspace lints
+lints.workspace = true
+
+# Package configuration
+# Reference: https://doc.rust-lang.org/cargo/reference/manifest.html#the-package-section
+[package]
+name = "iron-bin"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Freedesktop trash"
+# TODO: Add `documentation` when published on crates.io
+readme.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords = ["freedesktop-trash", "trash"]
+# Reference: https://crates.io/category_slugs
+categories = ["filesystem"]
+
+# Library configuration
+# Reference: https://doc.rust-lang.org/cargo/reference/cargo-targets.html#library
+[lib]
+
+# Dependencies
+# Reference: https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html
+[dependencies]
+
+# Development dependencies
+# Reference: https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#development-dependencies
+[dev-dependencies]
+
+# Build dependencies
+# Reference: https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#build-dependencies
+[build-dependencies]
