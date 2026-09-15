@@ -1,0 +1,48 @@
+# GitHub workflow - CI
+# Reference: https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+
+name: CI
+
+on:
+  push:
+    branches:
+
+jobs:
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v7
+      - name: Setup Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v2
+      - name: Cargo test
+        run: cargo test --workspace --all-features
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v7
+      - name: Setup Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v2
+        with:
+          toolchain: nightly
+          components: clippy
+      - name: Clippy
+        run: cargo clippy
+
+  rustfmt:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v7
+      - name: Setup Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v2
+        with:
+          components: rustfmt
+      - name: Rustfmt check
+        uses: actions-rust-lang/rustfmt@v1
